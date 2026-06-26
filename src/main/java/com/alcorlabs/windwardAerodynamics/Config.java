@@ -17,6 +17,10 @@ public class Config {
             .translation("config.windward_aerodynamics.enable_wind")
             .define("enableWind", true);
 
+    public static final ModConfigSpec.BooleanValue DEBUG_PARTICLES = BUILDER.comment("Debug Particles\nEnable aerodynamic vector visualization particles.")
+            .translation("config.windward_aerodynamics.debug_particles")
+            .define("debugParticles", false);
+
 
     static final ModConfigSpec SPEC = BUILDER.build();
 }

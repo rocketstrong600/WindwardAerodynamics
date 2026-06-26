@@ -5,7 +5,9 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "create.SailBlockMixin",
+    "create.SailBlockPlacementHelperMixin",
     "aeronautics.SymmetricSailBlockMixin",
+    "aeronautics.SymmetricSailPlacementHelperMixin",
     "sable.AbstractContraptionEntityMixin",
     "sable.ServerSubLevelMixin",
     "sable.ServerLevelPlotMixin"
