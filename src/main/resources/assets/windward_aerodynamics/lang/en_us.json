@@ -1,0 +1,8 @@
+{
+  "itemGroup.windward_aerodynamics": "Example Mod Tab",
+  "block.windward_aerodynamics.example_block": "Example Block",
+  "item.windward_aerodynamics.example_item": "Example Item",
+  "config.windward_aerodynamics.aerodynamic_force_multiplier": "Aero Force Mul",
+  "config.windward_aerodynamics.enable_wind": "Enable Wind",
+  "config.windward_aerodynamics.debug_particles": "Debug Particles"
+}
