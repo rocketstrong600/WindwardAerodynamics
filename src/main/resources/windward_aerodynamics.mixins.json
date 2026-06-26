@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.alcorlabs.windwardAerodynamics.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "create.SailBlockMixin",
+    "aeronautics.SymmetricSailBlockMixin",
+    "sable.AbstractContraptionEntityMixin",
+    "sable.ServerSubLevelMixin",
+    "sable.ServerLevelPlotMixin"
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
