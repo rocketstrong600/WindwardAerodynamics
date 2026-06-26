@@ -95,18 +95,16 @@ public class WindwardBlockstateGenerator implements DataProvider {
         variants.add("axis=y,chord_rotation=3", createVariant(base, 0, 270)); // WEST
 
         // AXIS = Z (Normal is SOUTH/NORTH)
-        // From facing=south mapping
-        variants.add("axis=z,chord_rotation=0", createVariant(rolled, 270, 0)); // UP
-        variants.add("axis=z,chord_rotation=1", createVariant(base, 270, 0)); // EAST
-        variants.add("axis=z,chord_rotation=2", createVariant(rolled, 90, 180)); // DOWN
-        variants.add("axis=z,chord_rotation=3", createVariant(base, 90, 180)); // WEST
+        variants.add("axis=z,chord_rotation=0", createVariant(base, 270, 0)); // UP
+        variants.add("axis=z,chord_rotation=1", createVariant(rolled, 90, 0)); // EAST
+        variants.add("axis=z,chord_rotation=2", createVariant(base, 90, 0)); // DOWN
+        variants.add("axis=z,chord_rotation=3", createVariant(rolled, 90, 180)); // WEST
 
         // AXIS = X (Normal is EAST/WEST)
-        // From facing=east mapping
-        variants.add("axis=x,chord_rotation=0", createVariant(base, 270, 270)); // NORTH
-        variants.add("axis=x,chord_rotation=1", createVariant(rolled, 270, 270)); // UP
-        variants.add("axis=x,chord_rotation=2", createVariant(base, 90, 90)); // SOUTH
-        variants.add("axis=x,chord_rotation=3", createVariant(rolled, 90, 90)); // DOWN
+        variants.add("axis=x,chord_rotation=0", createVariant(rolled, 90, 270)); // NORTH
+        variants.add("axis=x,chord_rotation=1", createVariant(base, 270, 90)); // UP
+        variants.add("axis=x,chord_rotation=2", createVariant(rolled, 90, 90)); // SOUTH
+        variants.add("axis=x,chord_rotation=3", createVariant(base, 90, 90)); // DOWN
 
         JsonObject root = new JsonObject();
         root.add("variants", variants);

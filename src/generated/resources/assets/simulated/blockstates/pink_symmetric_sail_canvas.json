@@ -1,22 +1,22 @@
 {
   "variants": {
     "axis=x,chord_rotation=0": {
-      "model": "windward_aerodynamics:block/pink_symmetric_sail_canvas",
-      "x": 270,
+      "model": "windward_aerodynamics:block/pink_symmetric_sail_canvas_rolled",
+      "x": 90,
       "y": 270
     },
     "axis=x,chord_rotation=1": {
-      "model": "windward_aerodynamics:block/pink_symmetric_sail_canvas_rolled",
+      "model": "windward_aerodynamics:block/pink_symmetric_sail_canvas",
       "x": 270,
-      "y": 270
+      "y": 90
     },
     "axis=x,chord_rotation=2": {
-      "model": "windward_aerodynamics:block/pink_symmetric_sail_canvas",
+      "model": "windward_aerodynamics:block/pink_symmetric_sail_canvas_rolled",
       "x": 90,
       "y": 90
     },
     "axis=x,chord_rotation=3": {
-      "model": "windward_aerodynamics:block/pink_symmetric_sail_canvas_rolled",
+      "model": "windward_aerodynamics:block/pink_symmetric_sail_canvas",
       "x": 90,
       "y": 90
     },
@@ -36,20 +36,19 @@
       "y": 270
     },
     "axis=z,chord_rotation=0": {
-      "model": "windward_aerodynamics:block/pink_symmetric_sail_canvas_rolled",
+      "model": "windward_aerodynamics:block/pink_symmetric_sail_canvas",
       "x": 270
     },
     "axis=z,chord_rotation=1": {
-      "model": "windward_aerodynamics:block/pink_symmetric_sail_canvas",
-      "x": 270
+      "model": "windward_aerodynamics:block/pink_symmetric_sail_canvas_rolled",
+      "x": 90
     },
     "axis=z,chord_rotation=2": {
-      "model": "windward_aerodynamics:block/pink_symmetric_sail_canvas_rolled",
-      "x": 90,
-      "y": 180
+      "model": "windward_aerodynamics:block/pink_symmetric_sail_canvas",
+      "x": 90
     },
     "axis=z,chord_rotation=3": {
-      "model": "windward_aerodynamics:block/pink_symmetric_sail_canvas",
+      "model": "windward_aerodynamics:block/pink_symmetric_sail_canvas_rolled",
       "x": 90,
       "y": 180
     }
