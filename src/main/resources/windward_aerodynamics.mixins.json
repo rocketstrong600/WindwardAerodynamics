@@ -8,7 +8,7 @@
     "create.SailBlockPlacementHelperMixin",
     "aeronautics.SymmetricSailBlockMixin",
     "aeronautics.SymmetricSailPlacementHelperMixin",
-    "sable.AbstractContraptionEntityMixin",
+    "create.AbstractContraptionEntityMixin",
     "sable.ServerSubLevelMixin",
     "sable.ServerLevelPlotMixin"
   ],
