@@ -15,6 +15,7 @@ import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import org.slf4j.Logger;
+import com.tterrag.registrate.Registrate;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
 @Mod(WindwardAerodynamics.MODID)
@@ -23,17 +24,15 @@ public class WindwardAerodynamics {
     public static final String MODID = "windward_aerodynamics";
     // Directly reference a slf4j logger
     public static final Logger LOGGER = LogUtils.getLogger();
+    
+    // Create the Registrate instance for the mod
+    public static final Registrate REGISTRATE = Registrate.create(MODID);
 
     // The constructor for the mod class is the first code that is run when your mod is loaded.
     // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
     public WindwardAerodynamics(IEventBus modEventBus, ModContainer modContainer) {
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
-
-        // Register ourselves for server and other game events we are interested in.
-        // Note that this is necessary if and only if we want *this* class (windwardAerodynamics) to respond directly to events.
-        // Do not add this line if there are no @SubscribeEvent-annotated functions in this class, like onServerStarting() below.
-        NeoForge.EVENT_BUS.register(this);
 
         //register config
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
@@ -44,16 +43,26 @@ public class WindwardAerodynamics {
     private void commonSetup(final FMLCommonSetupEvent event) {
     }
 
-    // You can use SubscribeEvent and let the Event Bus discover methods to call
-    @SubscribeEvent
-    public void onServerStarting(ServerStartingEvent event) {
-    }
-
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
     @EventBusSubscriber(modid = MODID, value = Dist.CLIENT)
     public static class ClientModEvents {
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {
+        }
+    }
+
+    @EventBusSubscriber(modid = MODID)
+    public static class DataGenerators {
+        @SubscribeEvent
+        public static void gatherData(net.neoforged.neoforge.data.event.GatherDataEvent event) {
+            net.minecraft.data.DataGenerator generator = event.getGenerator();
+            net.minecraft.data.PackOutput packOutput = generator.getPackOutput();
+            
+            // Register our blockstate generator
+            generator.addProvider(
+                event.includeClient(), 
+                new com.alcorlabs.windwardAerodynamics.datagen.WindwardBlockstateGenerator(packOutput)
+            );
         }
     }
 }

@@ -1,0 +1,114 @@
+{
+  "variants": {
+    "chord_rotation=0,facing=down": {
+      "model": "simulated:block/brown_symmetric_sail_canvas/block",
+      "x": 180,
+      "y": 180
+    },
+    "chord_rotation=0,facing=east": {
+      "model": "windward_aerodynamics:block/brown_symmetric_sail_canvas_rolled",
+      "x": 270,
+      "y": 270
+    },
+    "chord_rotation=0,facing=north": {
+      "model": "simulated:block/brown_symmetric_sail_canvas/block",
+      "x": 270,
+      "y": 180
+    },
+    "chord_rotation=0,facing=south": {
+      "model": "simulated:block/brown_symmetric_sail_canvas/block",
+      "x": 270
+    },
+    "chord_rotation=0,facing=up": {
+      "model": "simulated:block/brown_symmetric_sail_canvas/block"
+    },
+    "chord_rotation=0,facing=west": {
+      "model": "windward_aerodynamics:block/brown_symmetric_sail_canvas_rolled",
+      "x": 90,
+      "y": 270
+    },
+    "chord_rotation=1,facing=down": {
+      "model": "simulated:block/brown_symmetric_sail_canvas/block",
+      "x": 180,
+      "y": 90
+    },
+    "chord_rotation=1,facing=east": {
+      "model": "simulated:block/brown_symmetric_sail_canvas/block",
+      "x": 270,
+      "y": 270
+    },
+    "chord_rotation=1,facing=north": {
+      "model": "windward_aerodynamics:block/brown_symmetric_sail_canvas_rolled",
+      "x": 270,
+      "y": 180
+    },
+    "chord_rotation=1,facing=south": {
+      "model": "windward_aerodynamics:block/brown_symmetric_sail_canvas_rolled",
+      "x": 270
+    },
+    "chord_rotation=1,facing=up": {
+      "model": "simulated:block/brown_symmetric_sail_canvas/block",
+      "y": 90
+    },
+    "chord_rotation=1,facing=west": {
+      "model": "simulated:block/brown_symmetric_sail_canvas/block",
+      "x": 270,
+      "y": 90
+    },
+    "chord_rotation=2,facing=down": {
+      "model": "simulated:block/brown_symmetric_sail_canvas/block",
+      "x": 180
+    },
+    "chord_rotation=2,facing=east": {
+      "model": "windward_aerodynamics:block/brown_symmetric_sail_canvas_rolled",
+      "x": 90,
+      "y": 90
+    },
+    "chord_rotation=2,facing=north": {
+      "model": "simulated:block/brown_symmetric_sail_canvas/block",
+      "x": 90
+    },
+    "chord_rotation=2,facing=south": {
+      "model": "simulated:block/brown_symmetric_sail_canvas/block",
+      "x": 90,
+      "y": 180
+    },
+    "chord_rotation=2,facing=up": {
+      "model": "simulated:block/brown_symmetric_sail_canvas/block",
+      "y": 180
+    },
+    "chord_rotation=2,facing=west": {
+      "model": "windward_aerodynamics:block/brown_symmetric_sail_canvas_rolled",
+      "x": 270,
+      "y": 90
+    },
+    "chord_rotation=3,facing=down": {
+      "model": "simulated:block/brown_symmetric_sail_canvas/block",
+      "x": 180,
+      "y": 270
+    },
+    "chord_rotation=3,facing=east": {
+      "model": "simulated:block/brown_symmetric_sail_canvas/block",
+      "x": 90,
+      "y": 90
+    },
+    "chord_rotation=3,facing=north": {
+      "model": "windward_aerodynamics:block/brown_symmetric_sail_canvas_rolled",
+      "x": 90
+    },
+    "chord_rotation=3,facing=south": {
+      "model": "windward_aerodynamics:block/brown_symmetric_sail_canvas_rolled",
+      "x": 90,
+      "y": 180
+    },
+    "chord_rotation=3,facing=up": {
+      "model": "simulated:block/brown_symmetric_sail_canvas/block",
+      "y": 270
+    },
+    "chord_rotation=3,facing=west": {
+      "model": "simulated:block/brown_symmetric_sail_canvas/block",
+      "x": 90,
+      "y": 270
+    }
+  }
+}
