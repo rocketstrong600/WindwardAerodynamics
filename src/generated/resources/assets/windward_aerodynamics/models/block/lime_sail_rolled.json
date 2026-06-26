@@ -1,0 +1,7 @@
+{
+  "parent": "create:block/white_sail_rolled",
+  "textures": {
+    "0": "create:block/sail/canvas_lime",
+    "particle": "create:block/sail/canvas_lime"
+  }
+}
