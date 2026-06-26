@@ -88,19 +88,19 @@ public class WindwardBlockstateGenerator implements DataProvider {
     private JsonObject buildSymmetricSailVariants(String base, String rolled) {
         JsonObject variants = new JsonObject();
 
-        // AXIS = Y (Normal is UP/DOWN)
+        // AXIS = Y (Normal is UP)
         variants.add("axis=y,chord_rotation=0", createVariant(base, 0, 0)); // NORTH
         variants.add("axis=y,chord_rotation=1", createVariant(base, 0, 90)); // EAST
         variants.add("axis=y,chord_rotation=2", createVariant(base, 0, 180)); // SOUTH
         variants.add("axis=y,chord_rotation=3", createVariant(base, 0, 270)); // WEST
 
-        // AXIS = Z (Normal is SOUTH/NORTH)
+        // AXIS = Z (Normal is SOUTH)
         variants.add("axis=z,chord_rotation=0", createVariant(base, 270, 0)); // UP
         variants.add("axis=z,chord_rotation=1", createVariant(rolled, 90, 0)); // EAST
         variants.add("axis=z,chord_rotation=2", createVariant(base, 90, 0)); // DOWN
         variants.add("axis=z,chord_rotation=3", createVariant(rolled, 90, 180)); // WEST
 
-        // AXIS = X (Normal is EAST/WEST)
+        // AXIS = X (Normal is EAST)
         variants.add("axis=x,chord_rotation=0", createVariant(rolled, 90, 270)); // NORTH
         variants.add("axis=x,chord_rotation=1", createVariant(base, 270, 90)); // UP
         variants.add("axis=x,chord_rotation=2", createVariant(rolled, 90, 90)); // SOUTH
@@ -114,45 +114,41 @@ public class WindwardBlockstateGenerator implements DataProvider {
     private JsonObject buildSailVariants(String base, String rolled) {
         JsonObject variants = new JsonObject();
 
-        // UP (facing=up)
-        // chord_rotation index 0 = NORTH
-        variants.add("chord_rotation=0,facing=up", createVariant(base, 0, 0));
-        variants.add("chord_rotation=1,facing=up", createVariant(base, 0, 90));
-        variants.add("chord_rotation=2,facing=up", createVariant(base, 0, 180));
-        variants.add("chord_rotation=3,facing=up", createVariant(base, 0, 270));
+        // FACING = UP (Normal is UP)
+        variants.add("chord_rotation=0,facing=up", createVariant(base, 0, 0)); // NORTH
+        variants.add("chord_rotation=1,facing=up", createVariant(base, 0, 90)); // EAST
+        variants.add("chord_rotation=2,facing=up", createVariant(base, 0, 180)); // SOUTH
+        variants.add("chord_rotation=3,facing=up", createVariant(base, 0, 270)); // WEST
 
-        // DOWN (facing=down)
-        // chord_rotation index 0 = NORTH (x=180, y=180)
-        variants.add("chord_rotation=0,facing=down", createVariant(base, 180, 180));
-        variants.add("chord_rotation=1,facing=down", createVariant(base, 180, 90));
-        variants.add("chord_rotation=2,facing=down", createVariant(base, 180, 0));
-        variants.add("chord_rotation=3,facing=down", createVariant(base, 180, 270));
+        // FACING = DOWN (Normal is DOWN)
+        variants.add("chord_rotation=0,facing=down", createVariant(base, 180, 180)); // NORTH
+        variants.add("chord_rotation=1,facing=down", createVariant(base, 180, 90)); // WEST
+        variants.add("chord_rotation=2,facing=down", createVariant(base, 180, 0)); // SOUTH
+        variants.add("chord_rotation=3,facing=down", createVariant(base, 180, 270)); // EAST
 
-        // NORTH (facing=north) - Impossible to point chord North/South, defaults to UP
-        variants.add("chord_rotation=0,facing=north", createVariant(base, 270, 180)); // Default fallback
-        variants.add("chord_rotation=1,facing=north", createVariant(rolled, 270, 180)); // UP
-        variants.add("chord_rotation=2,facing=north", createVariant(base, 90, 0)); // Default fallback
-        variants.add("chord_rotation=3,facing=north", createVariant(rolled, 90, 0)); // DOWN
+        // FACING = NORTH (Normal is NORTH)
+        variants.add("chord_rotation=0,facing=north", createVariant(base, 270, 180)); // UP
+        variants.add("chord_rotation=1,facing=north", createVariant(rolled, 270, 180)); // WEST
+        variants.add("chord_rotation=2,facing=north", createVariant(base, 90, 0)); // DOWN
+        variants.add("chord_rotation=3,facing=north", createVariant(rolled, 90, 0)); // EAST
 
-        // SOUTH (facing=south)
-        variants.add("chord_rotation=0,facing=south", createVariant(base, 270, 0)); // Default fallback
-        variants.add("chord_rotation=1,facing=south", createVariant(rolled, 270, 0)); // UP
-        variants.add("chord_rotation=2,facing=south", createVariant(base, 90, 180)); // Default fallback
-        variants.add("chord_rotation=3,facing=south", createVariant(rolled, 90, 180)); // DOWN
+        // FACING = SOUTH (Normal is SOUTH)
+        variants.add("chord_rotation=0,facing=south", createVariant(base, 270, 0)); // UP
+        variants.add("chord_rotation=1,facing=south", createVariant(rolled, 270, 0)); // EAST
+        variants.add("chord_rotation=2,facing=south", createVariant(base, 90, 180)); // DOWN
+        variants.add("chord_rotation=3,facing=south", createVariant(rolled, 90, 180)); // WEST
 
-        // WEST (facing=west)
-        // chord_rotation index 0 = NORTH (x=90, y=270)
-        variants.add("chord_rotation=0,facing=west", createVariant(rolled, 90, 270));
-        variants.add("chord_rotation=1,facing=west", createVariant(base, 270, 90));
-        variants.add("chord_rotation=2,facing=west", createVariant(rolled, 270, 90));
-        variants.add("chord_rotation=3,facing=west", createVariant(base, 90, 270));
+        // FACING = WEST (Normal is WEST)
+        variants.add("chord_rotation=0,facing=west", createVariant(rolled, 90, 270)); // NORTH
+        variants.add("chord_rotation=1,facing=west", createVariant(base, 270, 90)); // UP
+        variants.add("chord_rotation=2,facing=west", createVariant(rolled, 270, 90)); // SOUTH
+        variants.add("chord_rotation=3,facing=west", createVariant(base, 90, 270)); // DOWN
 
-        // EAST (facing=east)
-        // chord_rotation index 0 = NORTH (x=270, y=270)
-        variants.add("chord_rotation=0,facing=east", createVariant(rolled, 270, 270));
-        variants.add("chord_rotation=1,facing=east", createVariant(base, 270, 270));
-        variants.add("chord_rotation=2,facing=east", createVariant(rolled, 90, 90));
-        variants.add("chord_rotation=3,facing=east", createVariant(base, 90, 90));
+        // FACING = EAST (Normal is EAST)
+        variants.add("chord_rotation=0,facing=east", createVariant(rolled, 270, 270)); // NORTH
+        variants.add("chord_rotation=1,facing=east", createVariant(base, 270, 270)); // UP
+        variants.add("chord_rotation=2,facing=east", createVariant(rolled, 90, 90)); // SOUTH
+        variants.add("chord_rotation=3,facing=east", createVariant(base, 90, 90)); // DOWN
 
         JsonObject root = new JsonObject();
         root.add("variants", variants);

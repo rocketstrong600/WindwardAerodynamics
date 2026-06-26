@@ -64,13 +64,13 @@ public abstract class SymmetricSailBlockMixin extends RotatedPillarBlock impleme
         int currentRot = originalState.getValue(WindwardAerodynamicsStates.CHORD_ROTATION);
         
         if (axis == targetedFace.getAxis()) {
-            // Wrench clicked on the flat face! Cycle the chord rotation!
-            // If they clicked the POSITIVE face (e.g. South), we rotate +1. NEGATIVE face (e.g. North) = -1.
+            // Wrench clicked on the flat face: Cycle the chord rotation.
+            // Positive faces (e.g., South) rotate clockwise (+1). Negative faces (e.g., North) rotate counter-clockwise (-1).
             int delta = (targetedFace.getAxisDirection() == Direction.AxisDirection.POSITIVE) ? 1 : 3;
             return originalState.setValue(WindwardAerodynamicsStates.CHORD_ROTATION, (currentRot + delta) % 4);
         } else {
-            // Wrench clicked on the side. The axis changes!
-            // Which axis does it change to? The one that is neither 'axis' nor 'targetedFace.getAxis()'
+            // Wrench clicked on the side edge: The block's primary axis changes.
+            // The new axis will be the axis orthogonal to both the old axis and the targeted face's axis.
             Direction.Axis newAxis = Direction.Axis.X;
             for (Direction.Axis a : Direction.Axis.values()) {
                 if (a != axis && a != targetedFace.getAxis()) {
@@ -79,28 +79,25 @@ public abstract class SymmetricSailBlockMixin extends RotatedPillarBlock impleme
                 }
             }
             
-            // To preserve the visual chord as much as possible, let's find the old chord in world space.
+            // To preserve the visual orientation of the sail as much as possible, we determine the old chord in world space.
             Direction oldNormal = Direction.get(Direction.AxisDirection.POSITIVE, axis);
             Direction oldChord = WindwardAerodynamicsStates.getChordFromRotation(oldNormal, currentRot);
             
-            // Rotate the old chord around the targeted face!
-            // But wait, the block is rotating, so the chord rotates in world space!
-            // Actually, Create's Wrench uses getClockWise around the targeted face.
-            // Let's manually rotate the oldChord around the targetedFace axis.
+            // Calculate how the chord direction vector rotates around the targeted face when wrenched.
             Direction newChord = oldChord;
             if (oldChord.getAxis() != targetedFace.getAxis()) {
-                // If the chord isn't parallel to the rotation axis, it rotates!
+                // Chords not parallel to the rotation axis rotate synchronously with the block.
                 newChord = oldChord.getClockWise(targetedFace.getAxis());
             }
             
-            // Now we find the closest chord rotation for the new axis!
+            // Determine the closest valid chord rotation for the newly assigned axis.
             Direction newNormal = Direction.get(Direction.AxisDirection.POSITIVE, newAxis);
             int newRot = 0;
             Direction[] possibleChords = WindwardAerodynamicsStates.CHORDS_BY_NORMAL[newNormal.get3DDataValue()];
             for (int i = 0; i < 4; i++) {
                 if (possibleChords[i] == newChord || possibleChords[i] == newChord.getOpposite()) {
                     newRot = i;
-                    // If it's the opposite, we could pick it, but let's try to match exactly if possible.
+                    // Exact matches take priority over opposites.
                     if (possibleChords[i] == newChord) break;
                 }
             }

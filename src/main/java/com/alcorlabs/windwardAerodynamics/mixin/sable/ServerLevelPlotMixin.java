@@ -48,6 +48,8 @@ public abstract class ServerLevelPlotMixin implements IAdvLiftPlot {
 
     @Inject(method = "onBlockChange", at = @At("HEAD"), remap = false)
     private void windwardAerodynamics$head$onBlockChange(BlockPos pos, BlockState state, CallbackInfo ci) {
-        this.windwardAerodynamics$advLiftProviders.remove(pos.asLong());
+        if (this.windwardAerodynamics$advLiftProviders.remove(pos.asLong()) != null) {
+            ((IAdvLiftSubLevel) this.getSubLevel()).windwardAerodynamics$markSpanGroupsDirty();
+        }
     }
 }
