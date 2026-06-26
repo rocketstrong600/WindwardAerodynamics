@@ -1,5 +1,5 @@
 {
-  "parent": "simulated:block/symmetric_sail/block_rolled",
+  "parent": "windward_aerodynamics:block/symmetric_sail_rolled",
   "textures": {
     "0": "create:block/sail/canvas_magenta",
     "1": "simulated:block/symmetric_sail/side_magenta",
