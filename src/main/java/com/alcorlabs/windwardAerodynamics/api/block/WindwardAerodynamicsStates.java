@@ -118,8 +118,8 @@ public class WindwardAerodynamicsStates {
         // SOUTH (3)
         CHORDS_BY_NORMAL[Direction.SOUTH.get3DDataValue()] = new Direction[]{Direction.UP, Direction.EAST, Direction.DOWN, Direction.WEST};
         // WEST (4)
-        CHORDS_BY_NORMAL[Direction.WEST.get3DDataValue()] = new Direction[]{Direction.UP, Direction.SOUTH, Direction.DOWN, Direction.NORTH};
+        CHORDS_BY_NORMAL[Direction.WEST.get3DDataValue()] = new Direction[]{Direction.NORTH, Direction.UP, Direction.SOUTH, Direction.DOWN};
         // EAST (5)
-        CHORDS_BY_NORMAL[Direction.EAST.get3DDataValue()] = new Direction[]{Direction.UP, Direction.NORTH, Direction.DOWN, Direction.SOUTH};
+        CHORDS_BY_NORMAL[Direction.EAST.get3DDataValue()] = new Direction[]{Direction.NORTH, Direction.UP, Direction.SOUTH, Direction.DOWN};
     }
 }
