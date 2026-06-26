@@ -42,21 +42,29 @@ public class WindwardBlockstateGenerator implements DataProvider {
             futures.add(DataProvider.saveStable(cachedOutput, createModelJson, output.getOutputFolder(PackOutput.Target.RESOURCE_PACK).resolve("windward_aerodynamics/models/block/" + color + "_sail_rolled.json")));
 
             // Symmetric Sail Blockstate
-            JsonObject symmetricSail = generateSymmetricSailBlockstate(color);
+            JsonObject symmetricSail = generateSymmetricSailBlockstate(color + "_symmetric_sail");
             futures.add(DataProvider.saveStable(cachedOutput, symmetricSail, output.getOutputFolder(PackOutput.Target.RESOURCE_PACK).resolve("simulated/blockstates/" + color + "_symmetric_sail.json")));
             
             // Symmetric Sail Canvas Blockstate
             JsonObject symmetricSailCanvas = generateSymmetricSailBlockstate(color + "_symmetric_sail_canvas");
             futures.add(DataProvider.saveStable(cachedOutput, symmetricSailCanvas, output.getOutputFolder(PackOutput.Target.RESOURCE_PACK).resolve("simulated/blockstates/" + color + "_symmetric_sail_canvas.json")));
             
-            // Symmetric Sail Rolled Models (Child of symmetric_sail/block_rolled)
+            // Symmetric Sail Rolled Models (Child of symmetric_sail_rolled)
             JsonObject simModelJson = new JsonObject();
-            simModelJson.addProperty("parent", "simulated:block/symmetric_sail/block_rolled");
+            simModelJson.addProperty("parent", "windward_aerodynamics:block/symmetric_sail_rolled");
             JsonObject simTextures = new JsonObject();
             simTextures.addProperty("0", "create:block/sail/canvas_" + color);
             simTextures.addProperty("1", "simulated:block/symmetric_sail/side_" + color);
             simTextures.addProperty("particle", "create:block/sail/canvas_" + color);
             simModelJson.add("textures", simTextures);
+            
+            // Symmetric Sail Base Models (Child of symmetric_sail/block)
+            JsonObject simBaseModelJson = new JsonObject();
+            simBaseModelJson.addProperty("parent", "simulated:block/symmetric_sail/block");
+            simBaseModelJson.add("textures", simTextures);
+            
+            futures.add(DataProvider.saveStable(cachedOutput, simBaseModelJson, output.getOutputFolder(PackOutput.Target.RESOURCE_PACK).resolve("windward_aerodynamics/models/block/" + color + "_symmetric_sail.json")));
+            futures.add(DataProvider.saveStable(cachedOutput, simBaseModelJson, output.getOutputFolder(PackOutput.Target.RESOURCE_PACK).resolve("windward_aerodynamics/models/block/" + color + "_symmetric_sail_canvas.json")));
             
             futures.add(DataProvider.saveStable(cachedOutput, simModelJson, output.getOutputFolder(PackOutput.Target.RESOURCE_PACK).resolve("windward_aerodynamics/models/block/" + color + "_symmetric_sail_rolled.json")));
             futures.add(DataProvider.saveStable(cachedOutput, simModelJson, output.getOutputFolder(PackOutput.Target.RESOURCE_PACK).resolve("windward_aerodynamics/models/block/" + color + "_symmetric_sail_canvas_rolled.json")));
@@ -72,9 +80,37 @@ public class WindwardBlockstateGenerator implements DataProvider {
     }
 
     private JsonObject generateSymmetricSailBlockstate(String name) {
-        String base = "simulated:block/" + name + "/block"; // Assuming Simulated registers them this way
+        String base = "windward_aerodynamics:block/" + name; 
         String rolled = "windward_aerodynamics:block/" + name + "_rolled";
-        return buildSailVariants(base, rolled);
+        return buildSymmetricSailVariants(base, rolled);
+    }
+
+    private JsonObject buildSymmetricSailVariants(String base, String rolled) {
+        JsonObject variants = new JsonObject();
+
+        // AXIS = Y (Normal is UP/DOWN)
+        variants.add("axis=y,chord_rotation=0", createVariant(base, 0, 0)); // NORTH
+        variants.add("axis=y,chord_rotation=1", createVariant(base, 0, 90)); // EAST
+        variants.add("axis=y,chord_rotation=2", createVariant(base, 0, 180)); // SOUTH
+        variants.add("axis=y,chord_rotation=3", createVariant(base, 0, 270)); // WEST
+
+        // AXIS = Z (Normal is SOUTH/NORTH)
+        // From facing=south mapping
+        variants.add("axis=z,chord_rotation=0", createVariant(rolled, 270, 0)); // UP
+        variants.add("axis=z,chord_rotation=1", createVariant(base, 270, 0)); // EAST
+        variants.add("axis=z,chord_rotation=2", createVariant(rolled, 90, 180)); // DOWN
+        variants.add("axis=z,chord_rotation=3", createVariant(base, 90, 180)); // WEST
+
+        // AXIS = X (Normal is EAST/WEST)
+        // From facing=east mapping
+        variants.add("axis=x,chord_rotation=0", createVariant(base, 270, 270)); // NORTH
+        variants.add("axis=x,chord_rotation=1", createVariant(rolled, 270, 270)); // UP
+        variants.add("axis=x,chord_rotation=2", createVariant(base, 90, 90)); // SOUTH
+        variants.add("axis=x,chord_rotation=3", createVariant(rolled, 90, 90)); // DOWN
+
+        JsonObject root = new JsonObject();
+        root.add("variants", variants);
+        return root;
     }
 
     private JsonObject buildSailVariants(String base, String rolled) {
