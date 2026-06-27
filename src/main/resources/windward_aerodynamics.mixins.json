@@ -10,7 +10,8 @@
     "aeronautics.SymmetricSailPlacementHelperMixin",
     "create.AbstractContraptionEntityMixin",
     "sable.ServerSubLevelMixin",
-    "sable.ServerLevelPlotMixin"
+    "sable.ServerLevelPlotMixin",
+    "simulated.DiagramEntityMixin"
   ],
   "client": [
   ],
