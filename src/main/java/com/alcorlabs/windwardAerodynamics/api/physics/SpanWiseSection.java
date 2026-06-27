@@ -141,9 +141,9 @@ public class SpanWiseSection {
             // Unsteady Aerodynamics (Wake Lag / Dynamic Stall)
             // The physical time constant for flow attachment/detachment is roughly proportional to
             // the time it takes for the airflow to travel across the chord length.
-            // tau = k * (chord / V) where k is an empirical constant (using 2.0 for general wake lag).
+            // tau = k * (chord / V) where k is an empirical constant.
             final double vMag = Math.max(AERO_CENTER_VELO.length(), 0.1); // clamp V to prevent infinite tau
-            final double tau = 2.0 * this.length / vMag;
+            final double tau = 0.75 * this.length / vMag; // Reduced from 2.0 to weaken the effect
             
             // Exponential decay: weight of old state is e^(-dt/tau)
             final float oldWeight = (float) Math.exp(-timeStep / tau);
