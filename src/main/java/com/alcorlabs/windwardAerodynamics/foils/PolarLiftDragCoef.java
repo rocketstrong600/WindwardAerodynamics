@@ -1,57 +1,38 @@
 package com.alcorlabs.windwardAerodynamics.foils;
 
+import com.alcorlabs.windwardAerodynamics.math.CubicBSpline;
+
 import java.util.Map;
 import java.util.TreeMap;
 
 public class PolarLiftDragCoef {
 
-    // Pre-baked array for O(1) lookups.
-    // Format: [aoa_index][0=Lift, 1=Drag, 2=Moment]
-    private float[][] bakedData;
-
-    // Configuration for the LUT
-    private final float minAoA = -180f;
-    private final float maxAoA = 180f;
-    private final float resolution = 10f; // 10 entries per degree (0.1 degree accuracy)
-    private final int arraySize = (int) ((this.maxAoA - this.minAoA) * this.resolution) + 1;
+    private final CubicBSpline liftSpline;
+    private final CubicBSpline dragSpline;
+    private final CubicBSpline momentSpline;
 
     public PolarLiftDragCoef(final String name, final TreeMap<Float, float[]> rawData) {
-        this.bakeData(rawData);
-    }
+        int D = rawData.size();
+        double[] xData = new double[D];
+        double[] liftData = new double[D];
+        double[] dragData = new double[D];
+        double[] momentData = new double[D];
 
-    private void bakeData(final TreeMap<Float, float[]> rawData) {
-        this.bakedData = new float[this.arraySize][3];
-
-        for (int i = 0; i < this.arraySize; i++) {
-            final float currentAoA = this.minAoA + (i / this.resolution);
-            this.bakedData[i][0] = this.interpolate(rawData, currentAoA, 0); // Lift
-            this.bakedData[i][1] = this.interpolate(rawData, currentAoA, 1); // Drag
-            this.bakedData[i][2] = this.interpolate(rawData, currentAoA, 2); // Moment
+        int k = 0;
+        for (Map.Entry<Float, float[]> entry : rawData.entrySet()) {
+            xData[k] = entry.getKey();
+            liftData[k] = entry.getValue()[0];
+            dragData[k] = entry.getValue()[1];
+            momentData[k] = entry.getValue()[2];
+            k++;
         }
-    }
 
-    private float interpolate(TreeMap<Float, float[]> map, float key, int index) {
-        if (map.isEmpty()) return 0f;
-
-        final float[] exactValue = map.get(key);
-        if (exactValue != null) return exactValue[index];
-
-        final Map.Entry<Float, float[]> floor = map.floorEntry(key);
-        final Map.Entry<Float, float[]> ceiling = map.ceilingEntry(key);
-
-        if (floor == null) return ceiling != null ? ceiling.getValue()[index] : 0f;
-        if (ceiling == null) return floor.getValue()[index];
-
-        final float alpha1 = floor.getKey();
-        final float alpha2 = ceiling.getKey();
-        final float ld1 = floor.getValue()[index];
-        final float ld2 = ceiling.getValue()[index];
-
-        if (alpha1 == alpha2) return ld1;
-
-        // Linear interpolation between the two nearest data points
-        final float t = (key - alpha1) / (alpha2 - alpha1);
-        return ld1 + t * (ld2 - ld1);
+        // 36 intervals for 360 degrees (1 interval per 10 degrees).
+        // This compresses 360 data points into 39 control points using Least Squares.
+        int intervals = 36;
+        this.liftSpline = new CubicBSpline(xData, liftData, intervals);
+        this.dragSpline = new CubicBSpline(xData, dragData, intervals);
+        this.momentSpline = new CubicBSpline(xData, momentData, intervals);
     }
 
     /**
@@ -60,18 +41,20 @@ public class PolarLiftDragCoef {
      * @param outArray an array of length 3 contains [Lift, Drag, Moment].
      */
     public void getCoefficients(float angleAttack, float[] outArray) {
-        // Clamp AoA to our bounds
-        angleAttack = Math.clamp(angleAttack, this.minAoA, this.maxAoA);
+        outArray[0] = (float) this.liftSpline.evaluate(angleAttack);
+        outArray[1] = (float) this.dragSpline.evaluate(angleAttack);
+        outArray[2] = (float) this.momentSpline.evaluate(angleAttack);
+    }
 
-        // O(1) index calculation, rounded to the nearest LUT entry
-        int index = Math.round((angleAttack - this.minAoA) * this.resolution);
-
-        // Safety bound check
-        if (index < 0) index = 0;
-        if (index >= this.arraySize) index = this.arraySize - 1;
-
-        outArray[0] = this.bakedData[index][0];
-        outArray[1] = this.bakedData[index][1];
-        outArray[2] = this.bakedData[index][2];
+    /**
+     * Gets the derivative of the Aerodynamic coefficients with respect to angle of attack.
+     * Useful for Jacobians and implicit solvers.
+     * @param angleAttack The angle of attack in degrees.
+     * @param outArray an array of length 3 contains [dLift/dAoA, dDrag/dAoA, dMoment/dAoA].
+     */
+    public void getCoefficientDerivatives(float angleAttack, float[] outArray) {
+        outArray[0] = (float) this.liftSpline.evaluateDerivative(angleAttack);
+        outArray[1] = (float) this.dragSpline.evaluateDerivative(angleAttack);
+        outArray[2] = (float) this.momentSpline.evaluateDerivative(angleAttack);
     }
 }
