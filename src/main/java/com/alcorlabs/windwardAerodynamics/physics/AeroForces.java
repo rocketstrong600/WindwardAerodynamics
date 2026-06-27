@@ -170,26 +170,23 @@ public class AeroForces {
         I.transform(dAngV, angularImpulse);
 
         // 6. Record grouped forces for visual/stress purposes
-        Vector3d globalCenter = new Vector3d();
-        Vector3d globalForce = new Vector3d();
+        Vector3d impulse = new Vector3d();
 
         for (final SpanWiseGroup wingGroup : groups) {
             if (wingGroup.totalLift().lengthSquared() >= 0.001 * 0.001) {
                 wingGroup.liftCenter().div(wingGroup.totalLiftStrength); // convert to local average center
-                pose.transformPosition(wingGroup.liftCenter(), globalCenter); // Local to Global Pos
-                pose.transformNormal(wingGroup.totalLift(), globalForce); // Local to Global Force
+                impulse.set(wingGroup.totalLift()).mul(timeStep); // Convert Force to Impulse
                 
                 serverSubLevel.getOrCreateQueuedForceGroup(ForceGroups.LIFT.get())
-                        .recordPointForce(globalCenter, globalForce);
+                        .recordPointForce(wingGroup.liftCenter(), impulse);
             }
 
             if (wingGroup.totalDrag().lengthSquared() >= 0.001 * 0.001) {
                 wingGroup.dragCenter().div(wingGroup.totalDragStrength);
-                pose.transformPosition(wingGroup.dragCenter(), globalCenter);
-                pose.transformNormal(wingGroup.totalDrag(), globalForce);
+                impulse.set(wingGroup.totalDrag()).mul(timeStep); // Convert Force to Impulse
                 
                 serverSubLevel.getOrCreateQueuedForceGroup(ForceGroups.DRAG.get())
-                        .recordPointForce(globalCenter, globalForce);
+                        .recordPointForce(wingGroup.dragCenter(), impulse);
             }
         }
     }
