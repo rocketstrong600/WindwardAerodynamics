@@ -1,11 +1,5 @@
 package com.alcorlabs.windwardAerodynamics.foils;
 
-import com.alcorlabs.windwardAerodynamics.WindwardAerodynamics;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -21,50 +15,7 @@ public class PolarLiftDragCoef {
     private final float resolution = 10f; // 10 entries per degree (0.1 degree accuracy)
     private final int arraySize = (int) ((this.maxAoA - this.minAoA) * this.resolution) + 1;
 
-    public PolarLiftDragCoef(final String foil) {
-        this.load(foil);
-    }
-
-    public void load(final String foil) {
-        final String resourcePath = "foils/" + foil + ".plr";
-        final TreeMap<Float, float[]> rawData = new TreeMap<>();
-
-        try (final InputStream stream = this.getClass().getClassLoader().getResourceAsStream(resourcePath)) {
-            if (stream == null) {
-                WindwardAerodynamics.LOGGER.error("Foil polar data not found: " + resourcePath);
-            } else {
-                final BufferedReader br = new BufferedReader(new InputStreamReader(stream));
-                String line;
-                boolean dataStarted = false;
-
-                while ((line = br.readLine()) != null) {
-                    if (dataStarted) {
-                        final String[] values = line.split("\\s+");
-                        if (values.length >= 4) {
-                            try {
-                                final float[] data = { Float.parseFloat(values[1]), Float.parseFloat(values[2]), Float.parseFloat(values[3]) };
-                                rawData.put(Float.parseFloat(values[0]), data);
-                            } catch (final NumberFormatException e) {
-                                WindwardAerodynamics.LOGGER.warn("Skipping malformed polar data line in " + resourcePath + ": " + line);
-                            }
-                        }
-                    }
-                    if (line.startsWith("AOA") && !dataStarted) {
-                        dataStarted = true;
-                    }
-                }
-
-                if (rawData.isEmpty()) {
-                    WindwardAerodynamics.LOGGER.warn("No polar data rows parsed for AeroFoil: " + foil);
-                } else {
-                    WindwardAerodynamics.LOGGER.info("Loaded AeroFoil: " + foil + " (" + rawData.size() + " rows)");
-                }
-            }
-        } catch (final IOException e) {
-            WindwardAerodynamics.LOGGER.error("Error Loading Foil Polar Data: " + e.getMessage());
-        }
-
-        // Always bake so bakedData is never null; an empty map bakes to zeros.
+    public PolarLiftDragCoef(final String name, final TreeMap<Float, float[]> rawData) {
         this.bakeData(rawData);
     }
 

@@ -31,7 +31,7 @@ public interface BlockSubLevelAdvLiftProvider {
     /**
      * Determines if this surface uses a symmetric foil.
      * Defaults to the legacy getLiftScalar() behavior to maintain add-on compatibility.
-     * @deprecated Use {@link #windwardAerodynamics$getFoil()} instead to specify custom foils.
+     * @deprecated Use {@link #windwardAerodynamics$getFoil(BlockState)} instead to specify custom foils.
      */
     @Deprecated
     default boolean windwardAerodynamics$usesSymmetricFoil() {
@@ -39,15 +39,13 @@ public interface BlockSubLevelAdvLiftProvider {
     }
 
     /**
+     * @param state The current blockstate of this lift provider
      * @return The aerofoil used by this lift provider
      */
     @NotNull
-    default PolarLiftDragCoef windwardAerodynamics$getFoil() {
-        return windwardAerodynamics$usesSymmetricFoil() ? com.alcorlabs.windwardAerodynamics.foils.Foils.SYMMETRICFOIL : com.alcorlabs.windwardAerodynamics.foils.Foils.CAMBEREDFOIL;
+    default PolarLiftDragCoef windwardAerodynamics$getFoil(BlockState state) {
+        return windwardAerodynamics$usesSymmetricFoil() ? com.alcorlabs.windwardAerodynamics.foils.AerofoilManager.getSymmetric() : com.alcorlabs.windwardAerodynamics.foils.AerofoilManager.getCambered();
     }
-
-    @Unique
-    @NotNull PolarLiftDragCoef windwardAerodynamics$getFoil(BlockState state);
 
 
     record LiftProviderContext(BlockPos pos, BlockState state, Vec3 chord, Vec3 normal) {

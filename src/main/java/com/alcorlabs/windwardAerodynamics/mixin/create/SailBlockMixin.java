@@ -1,7 +1,7 @@
 package com.alcorlabs.windwardAerodynamics.mixin.create;
 
 import com.alcorlabs.windwardAerodynamics.api.block.BlockSubLevelAdvLiftProvider;
-import com.alcorlabs.windwardAerodynamics.foils.Foils;
+
 import com.alcorlabs.windwardAerodynamics.foils.PolarLiftDragCoef;
 import com.simibubi.create.content.contraptions.bearing.SailBlock;
 import com.simibubi.create.foundation.block.WrenchableDirectionalBlock;
@@ -20,11 +20,9 @@ import net.minecraft.world.level.BlockGetter;
 import com.alcorlabs.windwardAerodynamics.api.block.WindwardAerodynamicsShapes;
 
 import com.alcorlabs.windwardAerodynamics.api.block.WindwardAerodynamicsStates;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.StateDefinition;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(SailBlock.class)
@@ -110,7 +108,7 @@ public abstract class SailBlockMixin extends WrenchableDirectionalBlock implemen
     @Unique
     @Override
     public @NotNull PolarLiftDragCoef windwardAerodynamics$getFoil(BlockState state) {
-        return Foils.SYMMETRICFOIL; 
+        return com.alcorlabs.windwardAerodynamics.foils.AerofoilManager.getSymmetric(); 
     }
 
     @Override

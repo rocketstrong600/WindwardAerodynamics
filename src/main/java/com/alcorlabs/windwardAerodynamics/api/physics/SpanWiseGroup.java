@@ -76,7 +76,7 @@ public class SpanWiseGroup {
                 // count toward area and aspect ratio.
                 if (!wingSlices.containsKey(spanWisePos)) {
                     final BlockSubLevelAdvLiftProvider liftProvider = (BlockSubLevelAdvLiftProvider) context.state().getBlock();
-                    wingSlices.put(spanWisePos, new SpanWiseSection(pos, context.state(), 1, chord, normal, liftProvider.windwardAerodynamics$getFoil()));
+                    wingSlices.put(spanWisePos, new SpanWiseSection(pos, context.state(), 1, chord, normal, liftProvider.windwardAerodynamics$getFoil(context.state())));
                     area += 1;
                 } else {
 
@@ -92,12 +92,12 @@ public class SpanWiseGroup {
                     if (chordWisePosDir > oldChordWisePosDir) {
                         final int newChordLength = (chordWisePosDir-oldChordWisePosDir)+oldWingSlice.getLength();
                         final BlockSubLevelAdvLiftProvider liftProvider = (BlockSubLevelAdvLiftProvider) context.state().getBlock();
-                        final SpanWiseSection newSpanWiseSection = new SpanWiseSection(pos, context.state(), newChordLength, chord, normal, liftProvider.windwardAerodynamics$getFoil());
+                        final SpanWiseSection newSpanWiseSection = new SpanWiseSection(pos, context.state(), newChordLength, chord, normal, liftProvider.windwardAerodynamics$getFoil(context.state()));
                         area += newChordLength - oldWingSlice.getLength();
                         wingSlices.replace(spanWisePos, newSpanWiseSection);
                     } else if (chordWisePosDir < oldChordWisePosDir - (oldWingSlice.getLength()-1)) {
                         final int newChordLength = (oldChordWisePosDir-chordWisePosDir)+1;
-                        final SpanWiseSection newSpanWiseSection = new SpanWiseSection(oldWingSlice.getLead(), context.state(), newChordLength, oldWingSlice.getChord(), oldWingSlice.getNormal(), oldWingSlice.getFoil());
+                        final SpanWiseSection newSpanWiseSection = new SpanWiseSection(oldWingSlice.getLead(), oldWingSlice.getLeadState(), newChordLength, oldWingSlice.getChord(), oldWingSlice.getNormal(), oldWingSlice.getFoil());
                         area += newChordLength - oldWingSlice.getLength();
                         wingSlices.replace(spanWisePos, newSpanWiseSection);
                     }
