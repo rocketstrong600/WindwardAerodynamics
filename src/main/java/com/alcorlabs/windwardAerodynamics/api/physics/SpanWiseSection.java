@@ -143,7 +143,7 @@ public class SpanWiseSection {
             // the time it takes for the airflow to travel across the chord length.
             // tau = k * (chord / V) where k is an empirical constant.
             final double vMag = Math.max(AERO_CENTER_VELO.length(), 0.1); // clamp V to prevent infinite tau
-            final double tau = 0.75 * this.length / vMag; // Reduced from 2.0 to weaken the effect
+            final double tau = 1.25 * this.length / vMag; // Tuned for a balance of stickiness and responsiveness
             
             // Exponential decay: weight of old state is e^(-dt/tau)
             final float oldWeight = (float) Math.exp(-timeStep / tau);
