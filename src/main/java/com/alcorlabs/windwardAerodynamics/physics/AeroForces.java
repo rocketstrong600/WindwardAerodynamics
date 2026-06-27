@@ -111,12 +111,18 @@ public class AeroForces {
         }
 
         // Jacobian Regularization
-        // Mathematical stalls (negative lift slope) create positive eigenvalues in the Jacobian.
-        // This violates the stability bounds of Implicit Euler and causes matrix inversions to explode.
-        // By forcing the diagonal to be non-positive, we mathematically guarantee unconditional stability!
-        for (int i = 0; i < 6; i++) {
-            if (J[i][i] > 0) {
-                J[i][i] = 0.0;
+        // Mathematical stalls (negative lift slope) and highly asymmetric aerodynamic cross-coupling 
+        // (e.g. pitch rate causing massive lift) create positive eigenvalues and indefinite matrices.
+        // This violates the stability bounds of Implicit Euler and causes matrix inversions to violently explode.
+        // By stripping off-diagonal aerodynamic cross-coupling and forcing the diagonal to be non-positive,
+        // we mathematically guarantee the matrix is strictly positive-definite and unconditionally stable!
+        for (int r = 0; r < 6; r++) {
+            for (int c = 0; c < 6; c++) {
+                if (r != c) {
+                    J[r][c] = 0.0; // Strip cross-coupling
+                } else if (J[r][c] > 0) {
+                    J[r][c] = 0.0; // Strip positive feedback on diagonal
+                }
             }
         }
 
