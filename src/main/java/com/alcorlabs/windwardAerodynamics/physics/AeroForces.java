@@ -171,14 +171,27 @@ public class AeroForces {
         I.transform(dAngV, angularImpulse);
 
         // 6. Record grouped forces for visual/stress purposes
-        for (final SpanWiseGroup wingGroup : groups) {
-            if (wingGroup.totalLift().lengthSquared() >= 0.001 * 0.001)
-                serverSubLevel.getOrCreateQueuedForceGroup(ForceGroups.LIFT.get())
-                        .recordPointForce(wingGroup.liftCenter().div(wingGroup.totalLiftStrength), wingGroup.totalLift());
+        Vector3d globalCenter = new Vector3d();
+        Vector3d globalForce = new Vector3d();
 
-            if (wingGroup.totalDrag().lengthSquared() >= 0.001 * 0.001)
+        for (final SpanWiseGroup wingGroup : groups) {
+            if (wingGroup.totalLift().lengthSquared() >= 0.001 * 0.001) {
+                wingGroup.liftCenter().div(wingGroup.totalLiftStrength); // convert to local average center
+                pose.transformPosition(wingGroup.liftCenter(), globalCenter); // Local to Global Pos
+                pose.transformNormal(wingGroup.totalLift(), globalForce); // Local to Global Force
+                
+                serverSubLevel.getOrCreateQueuedForceGroup(ForceGroups.LIFT.get())
+                        .recordPointForce(globalCenter, globalForce);
+            }
+
+            if (wingGroup.totalDrag().lengthSquared() >= 0.001 * 0.001) {
+                wingGroup.dragCenter().div(wingGroup.totalDragStrength);
+                pose.transformPosition(wingGroup.dragCenter(), globalCenter);
+                pose.transformNormal(wingGroup.totalDrag(), globalForce);
+                
                 serverSubLevel.getOrCreateQueuedForceGroup(ForceGroups.DRAG.get())
-                        .recordPointForce(wingGroup.dragCenter().div(wingGroup.totalDragStrength), wingGroup.totalDrag());
+                        .recordPointForce(globalCenter, globalForce);
+            }
         }
     }
 

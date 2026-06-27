@@ -7,7 +7,7 @@ public class Config {
 
     public static final ModConfigSpec.DoubleValue AERO_FORCE_MUL = BUILDER.comment("Aerodynamic Force Multiplier" +
                     "\nTranslate real-life Performance to Sable's low block weights." +
-                    "\nPast 0.4 certain builds will be unstable in the physics engine." +
+                    "\nPast 1.25 certain builds will be unstable in the physics engine." +
                     "\nThis may seem unrealistic however sables block masses are lower that real counterparts.")
             .translation("config.windward_aerodynamics.aerodynamic_force_multiplier")
             .defineInRange("aeroForceMul", 0.2, 0.001, 2.0);
