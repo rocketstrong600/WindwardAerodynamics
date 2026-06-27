@@ -13,7 +13,6 @@ import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import org.slf4j.Logger;
 import com.tterrag.registrate.Registrate;
 
@@ -38,9 +37,15 @@ public class WindwardAerodynamics {
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
 
         modContainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
+
+        NeoForge.EVENT_BUS.addListener(this::addReloadListeners);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
+    }
+
+    public void addReloadListeners(net.neoforged.neoforge.event.AddReloadListenerEvent event) {
+        event.addListener(new com.alcorlabs.windwardAerodynamics.foils.AerofoilManager());
     }
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent

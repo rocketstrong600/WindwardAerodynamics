@@ -1,7 +1,7 @@
 package com.alcorlabs.windwardAerodynamics.mixin.aeronautics;
 
 import com.alcorlabs.windwardAerodynamics.api.block.BlockSubLevelAdvLiftProvider;
-import com.alcorlabs.windwardAerodynamics.foils.Foils;
+
 import com.alcorlabs.windwardAerodynamics.foils.PolarLiftDragCoef;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -19,13 +19,10 @@ import net.minecraft.world.level.BlockGetter;
 import com.alcorlabs.windwardAerodynamics.api.block.WindwardAerodynamicsShapes;
 
 import com.alcorlabs.windwardAerodynamics.api.block.WindwardAerodynamicsStates;
-import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.StateDefinition;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(SymmetricSailBlock.class)
@@ -122,7 +119,7 @@ public abstract class SymmetricSailBlockMixin extends RotatedPillarBlock impleme
     @Unique
     @Override
     public @NotNull PolarLiftDragCoef windwardAerodynamics$getFoil(BlockState state) {
-        return Foils.SYMMETRICFOIL;
+        return com.alcorlabs.windwardAerodynamics.foils.AerofoilManager.getSymmetric();
     }
 
     @Override

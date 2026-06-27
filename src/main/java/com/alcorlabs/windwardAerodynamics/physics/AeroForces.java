@@ -142,19 +142,16 @@ public class AeroForces {
         }
 
 
-        // Clamp damping overshoot per axis.
+        // Clamp damping overshoot uniformly.
         // If the change in velocity opposes the current rotation AND exceeds its magnitude,
-        // the RK solver has overshot. We cap the change to exactly stop the rotation.
-        final double epsilon = 1e-4;
-
-        if (Math.abs(this.rkTemp2.x) > epsilon && Math.signum(this.rkTemp1.x) != Math.signum(this.rkTemp2.x) && Math.abs(this.rkTemp1.x) > Math.abs(this.rkTemp2.x)) {
-            this.rkTemp1.x = -this.rkTemp2.x;
-        }
-        if (Math.abs(this.rkTemp2.y) > epsilon && Math.signum(this.rkTemp1.y) != Math.signum(this.rkTemp2.y) && Math.abs(this.rkTemp1.y) > Math.abs(this.rkTemp2.y)) {
-            this.rkTemp1.y = -this.rkTemp2.y;
-        }
-        if (Math.abs(this.rkTemp2.z) > epsilon && Math.signum(this.rkTemp1.z) != Math.signum(this.rkTemp2.z) && Math.abs(this.rkTemp1.z) > Math.abs(this.rkTemp2.z)) {
-            this.rkTemp1.z = -this.rkTemp2.z;
+        // the RK solver has overshot. We scale the change down to exactly stop the rotation.
+        final double dotOmega = this.rkTemp2.dot(this.rkTemp1);
+        if (dotOmega < 0) {
+            final double omegaSq = this.rkTemp2.lengthSquared();
+            if (-dotOmega > omegaSq) {
+                final double t = omegaSq / -dotOmega;
+                this.rkTemp1.mul(t);
+            }
         }
 
         // Convert clamped Delta Omega back into the final Angular Impulse
@@ -171,17 +168,15 @@ public class AeroForces {
         // deltaV = linearImpulse / mass
         this.rkTemp1.set(linearImpulse).div(mass);
 
-        // Clamp linear overshoot per axis.
-        // If the drag/lift force opposes movement and exceeds current speed, cap it to exactly stop the plane.
-
-        if (Math.abs(this.rkTemp2.x) > epsilon && Math.signum(this.rkTemp1.x) != Math.signum(this.rkTemp2.x) && Math.abs(this.rkTemp1.x) > Math.abs(this.rkTemp2.x)) {
-            this.rkTemp1.x = -this.rkTemp2.x;
-        }
-        if (Math.abs(this.rkTemp2.y) > epsilon && Math.signum(this.rkTemp1.y) != Math.signum(this.rkTemp2.y) && Math.abs(this.rkTemp1.y) > Math.abs(this.rkTemp2.y)) {
-            this.rkTemp1.y = -this.rkTemp2.y;
-        }
-        if (Math.abs(this.rkTemp2.z) > epsilon && Math.signum(this.rkTemp1.z) != Math.signum(this.rkTemp2.z) && Math.abs(this.rkTemp1.z) > Math.abs(this.rkTemp2.z)) {
-            this.rkTemp1.z = -this.rkTemp2.z;
+        // Clamp linear overshoot uniformly.
+        // If the drag/lift force opposes movement and exceeds current speed, scale it to exactly stop the plane.
+        final double dotV = this.rkTemp2.dot(this.rkTemp1);
+        if (dotV < 0) {
+            final double vSq = this.rkTemp2.lengthSquared();
+            if (-dotV > vSq) {
+                final double t = vSq / -dotV;
+                this.rkTemp1.mul(t);
+            }
         }
 
         // Convert the clamped Delta V back into the final Linear Impulse

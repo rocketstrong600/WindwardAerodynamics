@@ -139,6 +139,12 @@ public class SpanWiseSection {
 
             // Lift direction: perpendicular to the in-plane local flow
             LIFT_NORMAL.set(AERO_CENTER_VELO.negate(TEMP).normalize(TEMP).cross(SPAN_NORMAL, TEMP)).normalize();
+            
+            // If flying backwards, the relative wind comes from the trailing edge.
+            // The cross product will point downwards, so we invert it to keep lift pointing "UP" relative to the wing.
+            if (chordWise < 0) {
+                LIFT_NORMAL.negate();
+            }
 
             // q = 1/2 * rho * V^2
             final double scalingFactor = Config.AERO_FORCE_MUL.get(); // Scaling Factor to translate real-life Performance to Sable's low block weights.
