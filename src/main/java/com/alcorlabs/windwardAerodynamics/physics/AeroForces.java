@@ -45,8 +45,9 @@ public class AeroForces {
     private final double[] B = new double[6];
 
     /**
-     * Calculates Aerodynamic forces for a group of wings using a Semi-Implicit Euler integrator
-     * powered by a Finite Difference Aerodynamic Jacobian matrix for unconditional stability.
+     * Calculates Aerodynamic forces for a group of wings using a Linearly Implicit Euler
+     * (Backward Euler) integrator, powered by a Diagonalized Finite Difference Aerodynamic 
+     * Jacobian matrix for unconditional stability.
      */
     public void integrateAeroForces(final ServerSubLevel serverSubLevel, @NotNull final Iterable<? extends SpanWiseGroup> groups, @Nullable final Pose3d localPose, final double timeStep, final Vector3dc linearVelocity, final Vector3dc angularVelocity, final Vector3d linearImpulse, final Vector3d angularImpulse) {
 
@@ -181,6 +182,10 @@ public class AeroForces {
         }
     }
 
+    /**
+     * Solves a 6x6 linear system A*x = b using Gaussian Elimination with partial pivoting.
+     * Efficiently handles the block-diagonal structure created by the Diagonalized Jacobian.
+     */
     private static double[] solve6x6(double[][] A, double[] b) {
         int n = 6;
         double[] x = new double[n];
