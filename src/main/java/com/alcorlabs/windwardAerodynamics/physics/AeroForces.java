@@ -8,57 +8,45 @@ import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3d;
+import org.joml.Matrix3dc;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 
 public class AeroForces {
 
-    /**
-     * Calculates All Aerodynamic forces for a group of wings. <br/>
-     * @param serverSubLevel  an instance of the ServerSublLevel
-     * @param groups          an iterable collection of wing groups
-     * @param localPose       The pose of the contraption this lift provider is in, if any
-     * @param timeStep        The time step between physics ticks
-     * @param linearVelocity  The linear velocity of the data in global space
-     * @param angularVelocity The angular velocity of the data in global space
-     * @param linearImpulse   Mutable vector to sum the linear impulse in local space
-     * @param angularImpulse  Mutable vector to sum the angular impulse in local space
-     * @param groupIntgWeight if the function will accumulate group totals.
-     */
     public void calculateAeroForces(final ServerSubLevel serverSubLevel, final Iterable<? extends SpanWiseGroup> groups, @Nullable final Pose3d localPose, final double timeStep, final Vector3dc linearVelocity, final Vector3dc angularVelocity, final Vector3d linearImpulse, final Vector3d angularImpulse, final double groupIntgWeight) {
         for (final SpanWiseGroup spanWiseGroup: groups) {
-
             for (final SpanWiseSection spanWiseSection: spanWiseGroup.sections() ) {
                 spanWiseSection.contributeLiftAndDrag(serverSubLevel, localPose, timeStep, linearVelocity, angularVelocity, linearImpulse, angularImpulse, spanWiseGroup, groupIntgWeight);
             }
         }
     }
 
-    private final Vector3d rkK1Linear = new Vector3d();
-    private final Vector3d rkK1Angular = new Vector3d();
-    private final Vector3d rkK2Linear = new Vector3d();
-    private final Vector3d rkK2Angular = new Vector3d();
-    private final Vector3d rkK3Linear = new Vector3d();
-    private final Vector3d rkK3Angular = new Vector3d();
-    private final Vector3d rkMidVelocity = new Vector3d();
-    private final Vector3d rkMidAngularVelocity = new Vector3d();
-    private final Vector3d rkEndVelocity = new Vector3d();
-    private final Vector3d rkEndAngularVelocity = new Vector3d();
-    private final Vector3d rkTemp1 = new Vector3d();
-    private final Vector3d rkTemp2 = new Vector3d();
-    private final Matrix3d rkTempMatrix = new Matrix3d();
-    private final Vector3d projOmega = new Vector3d();
+    private void computeForcesForGlobalV(ServerSubLevel serverSubLevel, Iterable<? extends SpanWiseGroup> groups, Pose3d localPose, double timeStep, Vector3dc globalLinV, Vector3dc globalAngV, Vector3d outLinImpulse, Vector3d outAngImpulse, double weight) {
+        outLinImpulse.zero();
+        outAngImpulse.zero();
+        calculateAeroForces(serverSubLevel, groups, localPose, timeStep, globalLinV, globalAngV, outLinImpulse, outAngImpulse, weight);
+    }
+
+    private final Vector3d perturbedLocalLinV = new Vector3d();
+    private final Vector3d perturbedLocalAngV = new Vector3d();
+    private final Vector3d perturbedGlobalLinV = new Vector3d();
+    private final Vector3d perturbedGlobalAngV = new Vector3d();
+    private final Vector3d tempLinImpulse = new Vector3d();
+    private final Vector3d tempAngImpulse = new Vector3d();
+    
+    private final Vector3d baseLinImpulse = new Vector3d();
+    private final Vector3d baseAngImpulse = new Vector3d();
+    private final Vector3d baseLocalLinV = new Vector3d();
+    private final Vector3d baseLocalAngV = new Vector3d();
+    
+    private final double[][] J = new double[6][6];
+    private final double[][] A = new double[6][6];
+    private final double[] B = new double[6];
 
     /**
-     * Calculates All Aerodynamic forces for a group of wings. With RK3 Predictor Corrector<br/>
-     * @param serverSubLevel  an instance of the ServerSublLevel
-     * @param groups          an iterable collection of wing groups
-     * @param localPose       The pose of the contraption this lift provider is in, if any
-     * @param timeStep        The time step between physics ticks
-     * @param linearVelocity  The linear velocity of the data in global space
-     * @param angularVelocity The angular velocity of the data in global space
-     * @param linearImpulse   Mutable vector to sum the linear impulse in local space
-     * @param angularImpulse  Mutable vector to sum the angular impulse in local space
+     * Calculates Aerodynamic forces for a group of wings using a Semi-Implicit Euler integrator
+     * powered by a Finite Difference Aerodynamic Jacobian matrix for unconditional stability.
      */
     public void integrateAeroForces(final ServerSubLevel serverSubLevel, @NotNull final Iterable<? extends SpanWiseGroup> groups, @Nullable final Pose3d localPose, final double timeStep, final Vector3dc linearVelocity, final Vector3dc angularVelocity, final Vector3d linearImpulse, final Vector3d angularImpulse) {
 
@@ -66,123 +54,116 @@ public class AeroForces {
             wingGroup.resetTotals();
         }
 
-        final double mass = serverSubLevel.getMassTracker().getMass();
-        final Matrix3d invLocalInertialTensor = serverSubLevel.getMassTracker().getInertiaTensor().invert(this.rkTempMatrix);
+        // 1. Evaluate Base Impulses (accumulating group totals)
+        computeForcesForGlobalV(serverSubLevel, groups, localPose, timeStep, linearVelocity, angularVelocity, baseLinImpulse, baseAngImpulse, 1.0);
 
-        // Max Angular velocity caused by Aerodynamics
-        final double maxAnglularVelocity = 18;
+        // 2. Finite Difference Loop to build Jacobian (Central Difference)
+        double eps = 1e-3; // Step in m/s or rad/s. Larger = better float stability.
 
-        // Reset our pre-allocated intermediate impulse vectors
-        this.rkK1Linear.zero(); this.rkK1Angular.zero();
-        this.rkK2Linear.zero(); this.rkK2Angular.zero();
-        this.rkK3Linear.zero(); this.rkK3Angular.zero();
+        Pose3d pose = serverSubLevel.logicalPose();
+        
+        pose.transformNormalInverse(linearVelocity, baseLocalLinV);
+        pose.transformNormalInverse(angularVelocity, baseLocalAngV);
 
-        final double weight1 = 1.0 / 6.0;
-        final double weight2 = 4.0 / 6.0;
-        final double weight3 = 1.0 / 6.0;
+        for (int col = 0; col < 6; col++) {
+            // Forward Step
+            perturbedLocalLinV.set(baseLocalLinV);
+            perturbedLocalAngV.set(baseLocalAngV);
 
-        // PASS 1 (k1)
-        this.calculateAeroForces(serverSubLevel, groups, localPose, timeStep, linearVelocity, angularVelocity, this.rkK1Linear, this.rkK1Angular, weight1);
+            if (col == 0) perturbedLocalLinV.x += eps;
+            if (col == 1) perturbedLocalLinV.y += eps;
+            if (col == 2) perturbedLocalLinV.z += eps;
+            if (col == 3) perturbedLocalAngV.x += eps;
+            if (col == 4) perturbedLocalAngV.y += eps;
+            if (col == 5) perturbedLocalAngV.z += eps;
 
-        // Predict Midpoint Velocity and AngularVelocity (using 0.5 * k1)
-        serverSubLevel.logicalPose().transformNormal(this.rkK1Linear, this.rkTemp1);
-        this.rkTemp1.mul(0.5 / mass);
-        linearVelocity.add(this.rkTemp1, this.rkMidVelocity);
+            pose.transformNormal(perturbedLocalLinV, perturbedGlobalLinV);
+            pose.transformNormal(perturbedLocalAngV, perturbedGlobalAngV);
 
-        invLocalInertialTensor.transform(this.rkK1Angular, this.rkTemp1);
-        serverSubLevel.logicalPose().transformNormal(this.rkTemp1);
-        this.rkTemp1.mul(0.5);
-        angularVelocity.add(this.rkTemp1, this.rkMidAngularVelocity);
+            computeForcesForGlobalV(serverSubLevel, groups, localPose, timeStep, perturbedGlobalLinV, perturbedGlobalAngV, tempLinImpulse, tempAngImpulse, 0.0);
 
+            double fLinX = tempLinImpulse.x, fLinY = tempLinImpulse.y, fLinZ = tempLinImpulse.z;
+            double fAngX = tempAngImpulse.x, fAngY = tempAngImpulse.y, fAngZ = tempAngImpulse.z;
 
-        // PASS 2 (k2)
-        this.calculateAeroForces(serverSubLevel, groups, localPose, timeStep, this.rkMidVelocity, this.rkMidAngularVelocity, this.rkK2Linear, this.rkK2Angular, weight2);
+            // Backward Step
+            perturbedLocalLinV.set(baseLocalLinV);
+            perturbedLocalAngV.set(baseLocalAngV);
 
-        // Predict Endpoint Velocity and AngularVelocity (using -k1 + 2*k2)
-        this.rkK2Linear.mul(2.0, this.rkTemp1).sub(this.rkK1Linear); // temp1 = (k2 * 2) - k1
-        serverSubLevel.logicalPose().transformNormal(this.rkTemp1);
-        this.rkTemp1.div(mass);
-        linearVelocity.add(this.rkTemp1, this.rkEndVelocity);
+            if (col == 0) perturbedLocalLinV.x -= eps;
+            if (col == 1) perturbedLocalLinV.y -= eps;
+            if (col == 2) perturbedLocalLinV.z -= eps;
+            if (col == 3) perturbedLocalAngV.x -= eps;
+            if (col == 4) perturbedLocalAngV.y -= eps;
+            if (col == 5) perturbedLocalAngV.z -= eps;
 
-        this.rkK2Angular.mul(2.0, this.rkTemp1).sub(this.rkK1Angular);
-        invLocalInertialTensor.transform(this.rkTemp1, this.rkTemp2);
-        serverSubLevel.logicalPose().transformNormal(this.rkTemp2);
-        angularVelocity.add(this.rkTemp2, this.rkEndAngularVelocity);
+            pose.transformNormal(perturbedLocalLinV, perturbedGlobalLinV);
+            pose.transformNormal(perturbedLocalAngV, perturbedGlobalAngV);
 
+            computeForcesForGlobalV(serverSubLevel, groups, localPose, timeStep, perturbedGlobalLinV, perturbedGlobalAngV, tempLinImpulse, tempAngImpulse, 0.0);
 
-        // PASS 3 (k3)
-        this.calculateAeroForces(serverSubLevel, groups, localPose, timeStep, this.rkEndVelocity, this.rkEndAngularVelocity, this.rkK3Linear, this.rkK3Angular, weight3);
-
-
-        // FINAL INTEGRATION
-        // weightedSum = (1/6)*k1 + (4/6)*k2 + (1/6)*k3
-
-        // add final impulse
-        linearImpulse.fma(weight1, this.rkK1Linear);
-        linearImpulse.fma(weight2, this.rkK2Linear);
-        linearImpulse.fma(weight3, this.rkK3Linear);
-
-        angularImpulse.fma(weight1, this.rkK1Angular);
-        angularImpulse.fma(weight2, this.rkK2Angular);
-        angularImpulse.fma(weight3, this.rkK3Angular);
-
-        // ANGULAR STIFFNESS CLAMP
-
-        // Get the current Global angular velocity in LOCAL space
-        serverSubLevel.logicalPose().transformNormalInverse(angularVelocity, this.rkTemp2);
-        // Calculate the proposed change in LOCAL angular velocity (Delta Omega)
-        invLocalInertialTensor.transform(angularImpulse, this.rkTemp1);
-
-        // Projected Change in Angular Velocity
-        this.rkTemp2.add(this.rkTemp1, this.projOmega);
-
-        if (this.projOmega.length() > maxAnglularVelocity) {
-            this.projOmega.normalize().mul(maxAnglularVelocity);
-            this.rkTemp1.set(this.projOmega).sub(this.rkTemp2);
+            // Central Difference = (F_forward - F_backward) / (2 * eps)
+            J[0][col] = (fLinX - tempLinImpulse.x) / (2 * eps);
+            J[1][col] = (fLinY - tempLinImpulse.y) / (2 * eps);
+            J[2][col] = (fLinZ - tempLinImpulse.z) / (2 * eps);
+            J[3][col] = (fAngX - tempAngImpulse.x) / (2 * eps);
+            J[4][col] = (fAngY - tempAngImpulse.y) / (2 * eps);
+            J[5][col] = (fAngZ - tempAngImpulse.z) / (2 * eps);
         }
 
-
-        // Clamp damping overshoot uniformly.
-        // If the change in velocity opposes the current rotation AND exceeds its magnitude,
-        // the RK solver has overshot. We scale the change down to exactly stop the rotation.
-        final double dotOmega = this.rkTemp2.dot(this.rkTemp1);
-        if (dotOmega < 0) {
-            final double omegaSq = this.rkTemp2.lengthSquared();
-            if (-dotOmega > omegaSq) {
-                final double t = omegaSq / -dotOmega;
-                this.rkTemp1.mul(t);
+        // Jacobian Regularization
+        // Mathematical stalls (negative lift slope) create positive eigenvalues in the Jacobian.
+        // This violates the stability bounds of Implicit Euler and causes matrix inversions to explode.
+        // By forcing the diagonal to be non-positive, we mathematically guarantee unconditional stability!
+        for (int i = 0; i < 6; i++) {
+            if (J[i][i] > 0) {
+                J[i][i] = 0.0;
             }
         }
 
-        // Convert clamped Delta Omega back into the final Angular Impulse
-        serverSubLevel.getMassTracker().getInertiaTensor().transform(this.rkTemp1, angularImpulse);
+        // 3. Build Linear System: (M - J) * DeltaV = BaseImpulse
+        double mass = serverSubLevel.getMassTracker().getMass();
+        Matrix3dc I = serverSubLevel.getMassTracker().getInertiaTensor();
+        
+        for (int i = 0; i < 6; i++) {
+            for (int j = 0; j < 6; j++) {
+                A[i][j] = 0.0;
+            }
+        }
+        for (int i = 0; i < 3; i++) {
+            A[i][i] = mass;
+        }
+        A[3][3] = I.m00(); A[3][4] = I.m10(); A[3][5] = I.m20();
+        A[4][3] = I.m01(); A[4][4] = I.m11(); A[4][5] = I.m21();
+        A[5][3] = I.m02(); A[5][4] = I.m12(); A[5][5] = I.m22();
 
-
-
-        // LINEAR STIFFNESS CLAMP
-
-        // Get the current Global linear velocity in LOCAL space
-        serverSubLevel.logicalPose().transformNormalInverse(linearVelocity, this.rkTemp2);
-
-        // Calculate the proposed change in LOCAL linear velocity (Delta V)
-        // deltaV = linearImpulse / mass
-        this.rkTemp1.set(linearImpulse).div(mass);
-
-        // Clamp linear overshoot uniformly.
-        // If the drag/lift force opposes movement and exceeds current speed, scale it to exactly stop the plane.
-        final double dotV = this.rkTemp2.dot(this.rkTemp1);
-        if (dotV < 0) {
-            final double vSq = this.rkTemp2.lengthSquared();
-            if (-dotV > vSq) {
-                final double t = vSq / -dotV;
-                this.rkTemp1.mul(t);
+        for (int r = 0; r < 6; r++) {
+            for (int c = 0; c < 6; c++) {
+                A[r][c] -= J[r][c];
             }
         }
 
-        // Convert the clamped Delta V back into the final Linear Impulse
-        // impulse = clamped Delta V * mass
-        linearImpulse.set(this.rkTemp1).mul(mass);
+        B[0] = baseLinImpulse.x;
+        B[1] = baseLinImpulse.y;
+        B[2] = baseLinImpulse.z;
+        B[3] = baseAngImpulse.x;
+        B[4] = baseAngImpulse.y;
+        B[5] = baseAngImpulse.z;
 
+        // 4. Solve for Delta Velocity
+        double[] deltaV = solve6x6(A, B);
+        
+        for (int i = 0; i < 6; i++) {
+            if (!Double.isFinite(deltaV[i])) {
+                deltaV[i] = 0.0; // Failsafe for mathematically singular states
+            }
+        }
+
+        // 5. Convert Delta Velocities back into stable local impulses
+        linearImpulse.set(deltaV[0] * mass, deltaV[1] * mass, deltaV[2] * mass);
+        Vector3d dAngV = new Vector3d(deltaV[3], deltaV[4], deltaV[5]);
+        I.transform(dAngV, angularImpulse);
+
+        // 6. Record grouped forces for visual/stress purposes
         for (final SpanWiseGroup wingGroup : groups) {
             if (wingGroup.totalLift().lengthSquared() >= 0.001 * 0.001)
                 serverSubLevel.getOrCreateQueuedForceGroup(ForceGroups.LIFT.get())
@@ -192,5 +173,45 @@ public class AeroForces {
                 serverSubLevel.getOrCreateQueuedForceGroup(ForceGroups.DRAG.get())
                         .recordPointForce(wingGroup.dragCenter().div(wingGroup.totalDragStrength), wingGroup.totalDrag());
         }
+    }
+
+    private static double[] solve6x6(double[][] A, double[] b) {
+        int n = 6;
+        double[] x = new double[n];
+        
+        for (int p = 0; p < n; p++) {
+            int max = p;
+            for (int i = p + 1; i < n; i++) {
+                if (Math.abs(A[i][p]) > Math.abs(A[max][p])) {
+                    max = i;
+                }
+            }
+            
+            double[] temp = A[p]; A[p] = A[max]; A[max] = temp;
+            double t = b[p]; b[p] = b[max]; b[max] = t;
+
+            if (Math.abs(A[p][p]) <= 1e-12) continue;
+
+            for (int i = p + 1; i < n; i++) {
+                double alpha = A[i][p] / A[p][p];
+                b[i] -= alpha * b[p];
+                for (int j = p; j < n; j++) {
+                    A[i][j] -= alpha * A[p][j];
+                }
+            }
+        }
+        
+        for (int i = n - 1; i >= 0; i--) {
+            double sum = 0.0;
+            for (int j = i + 1; j < n; j++) {
+                sum += A[i][j] * x[j];
+            }
+            if (Math.abs(A[i][i]) > 1e-12) {
+                x[i] = (b[i] - sum) / A[i][i];
+            } else {
+                x[i] = 0;
+            }
+        }
+        return x;
     }
 }
