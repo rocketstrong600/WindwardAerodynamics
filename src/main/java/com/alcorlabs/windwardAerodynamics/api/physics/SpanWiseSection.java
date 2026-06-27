@@ -32,6 +32,8 @@ public class SpanWiseSection {
     private final Vector3d CHORD_NORMAL = new Vector3d();
 
     private final float[] AERO_COEF = new float[3];
+    private final float[] PREV_AERO_COEF = new float[3];
+    private boolean isFirstTick = true;
 
     private final Vector3d AERO_CENTER_VELO = new Vector3d();
     private final Vector3d MOMENT_TORQUE = new Vector3d();
@@ -135,6 +137,38 @@ public class SpanWiseSection {
             final double angle_attack = Math.toDegrees(Math.atan2(-wingWise, chordWise));
 
             this.foil.getCoefficients((float) angle_attack, AERO_COEF);
+
+            // Unsteady Aerodynamics (Wake Lag / Dynamic Stall)
+            // The physical time constant for flow attachment/detachment is roughly proportional to
+            // the time it takes for the airflow to travel across the chord length.
+            // tau = k * (chord / V) where k is an empirical constant (using 2.0 for general wake lag).
+            final double vMag = Math.max(AERO_CENTER_VELO.length(), 0.1); // clamp V to prevent infinite tau
+            final double tau = 2.0 * this.length / vMag;
+            
+            // Exponential decay: weight of old state is e^(-dt/tau)
+            final float oldWeight = (float) Math.exp(-timeStep / tau);
+            final float newWeight = 1.0f - oldWeight;
+
+            if (this.isFirstTick) {
+                // Initialize coefficients perfectly on the first tick so it doesn't slowly spool up from 0
+                if (groupIntgWeight > 0.0) {
+                    this.PREV_AERO_COEF[0] = AERO_COEF[0];
+                    this.PREV_AERO_COEF[1] = AERO_COEF[1];
+                    this.PREV_AERO_COEF[2] = AERO_COEF[2];
+                    this.isFirstTick = false;
+                }
+            } else {
+                AERO_COEF[0] = AERO_COEF[0] * newWeight + this.PREV_AERO_COEF[0] * oldWeight;
+                AERO_COEF[1] = AERO_COEF[1] * newWeight + this.PREV_AERO_COEF[1] * oldWeight;
+                AERO_COEF[2] = AERO_COEF[2] * newWeight + this.PREV_AERO_COEF[2] * oldWeight;
+                
+                // Only save state during the base force evaluation (weight > 0), NOT during Jacobian "what-if" perturbations
+                if (groupIntgWeight > 0.0) {
+                    this.PREV_AERO_COEF[0] = AERO_COEF[0];
+                    this.PREV_AERO_COEF[1] = AERO_COEF[1];
+                    this.PREV_AERO_COEF[2] = AERO_COEF[2];
+                }
+            }
 
 
             // Lift direction: perpendicular to the in-plane local flow
