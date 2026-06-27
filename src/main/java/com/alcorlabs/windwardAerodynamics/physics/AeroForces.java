@@ -42,6 +42,10 @@ public class AeroForces {
     private final double[][] J = new double[6][6];
     private final double[][] A = new double[6][6];
     private final double[] B = new double[6];
+    
+    private final double[][] workA = new double[6][6];
+    private final double[] workB = new double[6];
+    private final double[] X = new double[6];
 
     /**
      * Calculates Aerodynamic forces for a group of wings using a Linearly Implicit Euler
@@ -190,29 +194,37 @@ public class AeroForces {
     /**
      * Solves a 6x6 linear system A*x = b using Gaussian Elimination with partial pivoting.
      * Efficiently handles the block-diagonal structure created by the Diagonalized Jacobian.
+     * Uses pre-allocated work arrays to prevent mutating the input arrays and avoid allocations.
      */
-    private static double[] solve6x6(double[][] A, double[] b) {
+    private double[] solve6x6(double[][] A, double[] b) {
         int n = 6;
-        double[] x = new double[n];
+        
+        // Copy A and b into work arrays to avoid mutating the originals
+        for (int i = 0; i < n; i++) {
+            System.arraycopy(A[i], 0, workA[i], 0, n);
+            workB[i] = b[i];
+            X[i] = 0;
+        }
         
         for (int p = 0; p < n; p++) {
             int max = p;
             for (int i = p + 1; i < n; i++) {
-                if (Math.abs(A[i][p]) > Math.abs(A[max][p])) {
+                if (Math.abs(workA[i][p]) > Math.abs(workA[max][p])) {
                     max = i;
                 }
             }
             
-            double[] temp = A[p]; A[p] = A[max]; A[max] = temp;
-            double t = b[p]; b[p] = b[max]; b[max] = t;
+            // Swap rows in work arrays
+            double[] temp = workA[p]; workA[p] = workA[max]; workA[max] = temp;
+            double t = workB[p]; workB[p] = workB[max]; workB[max] = t;
 
-            if (Math.abs(A[p][p]) <= 1e-12) continue;
+            if (Math.abs(workA[p][p]) <= 1e-12) continue;
 
             for (int i = p + 1; i < n; i++) {
-                double alpha = A[i][p] / A[p][p];
-                b[i] -= alpha * b[p];
+                double alpha = workA[i][p] / workA[p][p];
+                workB[i] -= alpha * workB[p];
                 for (int j = p; j < n; j++) {
-                    A[i][j] -= alpha * A[p][j];
+                    workA[i][j] -= alpha * workA[p][j];
                 }
             }
         }
@@ -220,14 +232,14 @@ public class AeroForces {
         for (int i = n - 1; i >= 0; i--) {
             double sum = 0.0;
             for (int j = i + 1; j < n; j++) {
-                sum += A[i][j] * x[j];
+                sum += workA[i][j] * X[j];
             }
-            if (Math.abs(A[i][i]) > 1e-12) {
-                x[i] = (b[i] - sum) / A[i][i];
+            if (Math.abs(workA[i][i]) > 1e-12) {
+                X[i] = (workB[i] - sum) / workA[i][i];
             } else {
-                x[i] = 0;
+                X[i] = 0;
             }
         }
-        return x;
+        return X;
     }
 }

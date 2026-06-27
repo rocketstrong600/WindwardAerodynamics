@@ -116,11 +116,11 @@ public class SpanWiseSection {
 
 
         // transform VELO to be the local velocity at the center of the block
-        // TEMP = transformed POS
+        // TEMP = vector from CoM to AERO_CENTER
         // VELO = linVel + angVel cross TEMP
         // VELO = inv transformed VELO
-        // pose.position is GlobalSpace CoM
-        pose.transformPosition(AERO_CENTER, TEMP).sub(pose.position());
+        TEMP.set(AERO_CENTER).sub(localCoM);
+        pose.transformNormal(TEMP);
         AERO_CENTER_VELO.set(linearVelocity).add(angularVelocity.cross(TEMP, TEMP));
         pose.transformNormalInverse(AERO_CENTER_VELO);
 
@@ -151,12 +151,10 @@ public class SpanWiseSection {
 
             if (this.isFirstTick) {
                 // Initialize coefficients perfectly on the first tick so it doesn't slowly spool up from 0
-                if (groupIntgWeight > 0.0) {
-                    this.PREV_AERO_COEF[0] = AERO_COEF[0];
-                    this.PREV_AERO_COEF[1] = AERO_COEF[1];
-                    this.PREV_AERO_COEF[2] = AERO_COEF[2];
-                    this.isFirstTick = false;
-                }
+                this.PREV_AERO_COEF[0] = AERO_COEF[0];
+                this.PREV_AERO_COEF[1] = AERO_COEF[1];
+                this.PREV_AERO_COEF[2] = AERO_COEF[2];
+                this.isFirstTick = false;
             } else {
                 AERO_COEF[0] = AERO_COEF[0] * newWeight + this.PREV_AERO_COEF[0] * oldWeight;
                 AERO_COEF[1] = AERO_COEF[1] * newWeight + this.PREV_AERO_COEF[1] * oldWeight;
