@@ -8,7 +8,7 @@ Instead of relying on basic lift and drag values per block, blocks that generate
 
 ## Features
 - Replaces Sable's arcade-style physics with realistic Simulated Aerofoil Data.
-- Force multipliers for fine-tuning aerodynamics.
+- Configurable Physics for fine-tuning aerodynamics.
 - Sailing to come later.
 
 ## License
