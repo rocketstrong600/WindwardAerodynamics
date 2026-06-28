@@ -1,5 +1,6 @@
 package com.alcorlabs.windwardAerodynamics.physics;
 
+import com.alcorlabs.windwardAerodynamics.Config;
 import com.alcorlabs.windwardAerodynamics.api.physics.SpanWiseGroup;
 import com.alcorlabs.windwardAerodynamics.api.physics.SpanWiseSection;
 import dev.ryanhcode.sable.api.physics.force.ForceGroups;
@@ -114,26 +115,33 @@ public class AeroForces {
             J[5][col] = (fAngZ - tempAngImpulse.z) / (2 * eps);
         }
 
+        double mass = serverSubLevel.getMassTracker().getMass();
+        Matrix3dc I = serverSubLevel.getMassTracker().getInertiaTensor();
+        double feedbackScale = Config.MAX_POSITIVE_FEEDBACK_SCALE.get();
+
         // Jacobian Regularization
         // Mathematical stalls (negative lift slope) and highly asymmetric aerodynamic cross-coupling 
         // (e.g. pitch rate causing massive lift) create positive eigenvalues and indefinite matrices.
         // This violates the stability bounds of Implicit Euler and causes matrix inversions to violently explode.
-        // By stripping off-diagonal aerodynamic cross-coupling and forcing the diagonal to be non-positive,
-        // we mathematically guarantee the matrix is strictly positive-definite and unconditionally stable!
+        // By scaling off-diagonal aerodynamic cross-coupling and strictly clamping positive feedback on the diagonal
+        // to a fraction of the mass matrix, we allow a slider for realism while mathematically guaranteeing 
+        // the matrix remains strictly positive-definite and unconditionally stable!
         for (int r = 0; r < 6; r++) {
+            double m_rr = (r == 0) ? mass : (r == 1) ? mass : (r == 2) ? mass :
+                          (r == 3) ? I.m00() : (r == 4) ? I.m11() : I.m22();
+            
             for (int c = 0; c < 6; c++) {
                 if (r != c) {
-                    J[r][c] = 0.0; // Strip cross-coupling
+                    J[r][c] *= feedbackScale; // Blend cross-coupling based on realism scale
                 } else if (J[r][c] > 0) {
-                    J[r][c] = 0.0; // Strip positive feedback on diagonal
+                    // Blend positive feedback, but strictly clamp to 95% of the mass to mathematically prevent division-by-zero explosions
+                    double maxJ = m_rr * 0.95;
+                    J[r][c] = Math.min(J[r][c], maxJ) * feedbackScale;
                 }
             }
         }
 
         // 3. Build Linear System: (M - J) * DeltaV = BaseImpulse
-        double mass = serverSubLevel.getMassTracker().getMass();
-        Matrix3dc I = serverSubLevel.getMassTracker().getInertiaTensor();
-        
         for (int i = 0; i < 6; i++) {
             for (int j = 0; j < 6; j++) {
                 A[i][j] = 0.0;

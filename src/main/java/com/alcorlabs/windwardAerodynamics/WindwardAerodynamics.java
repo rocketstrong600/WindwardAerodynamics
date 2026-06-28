@@ -33,8 +33,9 @@ public class WindwardAerodynamics {
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
 
-        //register config
-        modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        //register configs
+        modContainer.registerConfig(ModConfig.Type.SERVER, Config.SERVER_SPEC);
+        modContainer.registerConfig(ModConfig.Type.CLIENT, Config.CLIENT_SPEC);
 
         modContainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
 

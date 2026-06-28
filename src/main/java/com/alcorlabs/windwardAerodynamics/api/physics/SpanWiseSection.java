@@ -138,12 +138,22 @@ public class SpanWiseSection {
 
             this.foil.getCoefficients((float) angle_attack, AERO_COEF);
 
-            // Unsteady Aerodynamics (Wake Lag / Dynamic Stall)
+            if (Config.ENABLE_FINITE_WING_CORRECTION.get()) {
+                // Prandtl Lifting-Line Theory correction for finite wings
+                // C_L = C_L,2D / (1 + 2 / (e * AR))
+                // Assuming typical 2D lift slope a0 ~ 2*pi
+                double ar = group.aspectRatio();
+                double e = Config.OSWALD_EFFICIENCY.get();
+                double correction = 1.0 / (1.0 + 2.0 / (e * ar));
+                AERO_COEF[0] *= correction;
+            }
+
+            // Unsteady Aerodynamics (Wake Lag approximation via Wagner's function)
             // The physical time constant for flow attachment/detachment is roughly proportional to
             // the time it takes for the airflow to travel across the chord length.
             // tau = k * (chord / V) where k is an empirical constant.
             final double vMag = Math.max(AERO_CENTER_VELO.length(), 0.1); // clamp V to prevent infinite tau
-            final double tau = 1.5 * this.length / vMag; // Tuned for a balance of stickiness and responsiveness
+            final double tau = Config.DYNAMIC_STALL_TIME_CONSTANT.get() * this.length / vMag; // Tuned for a balance of stickiness and responsiveness
             
             // Exponential decay: weight of old state is e^(-dt/tau)
             final float oldWeight = (float) Math.exp(-timeStep / tau);
@@ -179,13 +189,13 @@ public class SpanWiseSection {
             }
 
             // q = 1/2 * rho * V^2
-            final double scalingFactor = Config.AERO_FORCE_MUL.get(); // Scaling Factor to translate real-life Performance to Sable's low block weights.
+            final double scalingFactor = Config.AERO_FORCE_MULTIPLIER.get(); // Scaling Factor to translate real-life Performance to Sable's low block weights.
             final double dynamicPressure = (0.5d * pressure * AERO_CENTER_VELO.lengthSquared()) * scalingFactor;
 
             // Drag force
             // CID = CL * CL / PI * AR * Eff
             // Higher efficiency coefficient than what you would see in real-life to tune typical contraption flying speeds
-            final double indDragCoef = (AERO_COEF[0]*AERO_COEF[0])/(Math.PI * group.aspectRatio() * 0.98);
+            final double indDragCoef = (AERO_COEF[0]*AERO_COEF[0])/(Math.PI * group.aspectRatio() * Config.OSWALD_EFFICIENCY.get());
             final double dragMag = dynamicPressure * this.length * (AERO_COEF[1]+indDragCoef);
 
             AERO_CENTER_VELO.negate(TEMP).normalize();

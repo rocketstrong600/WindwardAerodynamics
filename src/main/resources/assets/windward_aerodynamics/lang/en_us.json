@@ -1,8 +1,11 @@
 {
-  "itemGroup.windward_aerodynamics": "Example Mod Tab",
-  "block.windward_aerodynamics.example_block": "Example Block",
-  "item.windward_aerodynamics.example_item": "Example Item",
-  "config.windward_aerodynamics.aerodynamic_force_multiplier": "Aero Force Mul",
-  "config.windward_aerodynamics.enable_wind": "Enable Wind",
-  "config.windward_aerodynamics.debug_particles": "Debug Particles"
+  "windward_aerodynamics.configuration.aerodynamic_force_multiplier": "Aero Force Mul",
+  "windward_aerodynamics.configuration.enable_wind": "Enable Wind",
+  "windward_aerodynamics.configuration.debug_particles": "Debug Particles",
+  "windward_aerodynamics.configuration.oswald_efficiency": "Oswald Efficiency",
+  "windward_aerodynamics.configuration.dynamic_stall_time_constant": "Dynamic Stall Time Constant",
+  "windward_aerodynamics.configuration.enable_finite_wing_correction": "Enable Finite Wing Lift Correction",
+  "windward_aerodynamics.configuration.max_positive_feedback_scale": "Max Positive Feedback",
+  "windward_aerodynamics.configuration.advanced_aerodynamics": "Advanced Simulation Options",
+  "windward_aerodynamics.configuration.dev": "Developer Helpers"
 }
