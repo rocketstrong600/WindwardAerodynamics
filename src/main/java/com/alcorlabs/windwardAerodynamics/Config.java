@@ -13,6 +13,10 @@ public class Config {
             .translation("windward_aerodynamics.configuration.aerodynamic_force_multiplier")
             .defineInRange("aeroForceMul", 0.2, 0.001, 2.0);
             
+    public static final ModConfigSpec.DoubleValue DRAG_MULTIPLIER = SERVER_BUILDER.comment("Drag Multiplier\nScales the aerodynamic drag. Lower values increase the L/D (Lift-to-Drag) ratio, allowing planes to glide much further.\n1.0 is realistic drag.")
+            .translation("windward_aerodynamics.configuration.drag_multiplier")
+            .defineInRange("dragMultiplier", 1.0, 0.0, 10.0);
+            
     public static final ModConfigSpec.BooleanValue ENABLE_WIND = SERVER_BUILDER.comment("Enable wind\nRequired For Sailing\nNot Implemented Yet")
             .translation("windward_aerodynamics.configuration.enable_wind")
             .define("enableWind", true);

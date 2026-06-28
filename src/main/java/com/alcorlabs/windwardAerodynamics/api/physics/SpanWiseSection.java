@@ -196,7 +196,7 @@ public class SpanWiseSection {
             // CID = CL * CL / PI * AR * Eff
             // Higher efficiency coefficient than what you would see in real-life to tune typical contraption flying speeds
             final double indDragCoef = (AERO_COEF[0]*AERO_COEF[0])/(Math.PI * group.aspectRatio() * Config.OSWALD_EFFICIENCY.get());
-            final double dragMag = dynamicPressure * this.length * (AERO_COEF[1]+indDragCoef);
+            final double dragMag = dynamicPressure * this.length * (AERO_COEF[1]+indDragCoef) * Config.DRAG_MULTIPLIER.get();
 
             AERO_CENTER_VELO.negate(TEMP).normalize();
             TEMP.mul(dragMag);
