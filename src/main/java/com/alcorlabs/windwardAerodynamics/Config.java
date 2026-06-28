@@ -9,19 +9,19 @@ public class Config {
     // SERVER CONFIG
     public static final ModConfigSpec.DoubleValue AERO_FORCE_MULTIPLIER = SERVER_BUILDER.comment("Aerodynamic Force Multiplier" +
                     "\nTranslate real-life Performance to Sable's low block weights." +
-                    "\nThis may seem unrealistic however sables block masses are lower that real counterparts.")
+                    "\nThis may seem unrealistic however sables block masses are lower than real counterparts.")
             .translation("windward_aerodynamics.configuration.aerodynamic_force_multiplier")
             .defineInRange("aeroForceMul", 0.2, 0.001, 2.0);
             
-    public static final ModConfigSpec.BooleanValue ENABLE_WIND = SERVER_BUILDER.comment("Enable wind\nRequired For Sailing")
+    public static final ModConfigSpec.BooleanValue ENABLE_WIND = SERVER_BUILDER.comment("Enable wind\nRequired For Sailing\nNot Implemented Yet")
             .translation("windward_aerodynamics.configuration.enable_wind")
             .define("enableWind", true);
 
-    public static final ModConfigSpec.DoubleValue OSWALD_EFFICIENCY = SERVER_BUILDER.comment("Oswald Efficiency (e)\nControls induced drag penalty for aspect ratio. 1.0 is theoretically perfect wing. Lower values increase drag.\nNote: Capped between 0.5 and 1.0.")
+    public static final ModConfigSpec.DoubleValue OSWALD_EFFICIENCY = SERVER_BUILDER.comment("Oswald Efficiency (e)\nControls induced drag penalty for aspect ratio. 1.0 is theoretically perfect wing. Lower values increase drag.")
             .translation("windward_aerodynamics.configuration.oswald_efficiency")
-            .defineInRange("advanced_aerodynamics.oswaldEfficiency", 0.98, 0.5, 1.0);
+            .defineInRange("advanced_aerodynamics.oswaldEfficiency", 0.98, 0.5, 2.0);
 
-    public static final ModConfigSpec.DoubleValue DYNAMIC_STALL_TIME_CONSTANT = SERVER_BUILDER.comment("Dynamic Stall Time Constant (k)\nControls how many chords of travel the wake takes to settle (Unsteady Aerodynamics).\nHigher values = more 'sticky' lag. Lower values = instantaneous snap.\nNote: Capped between 0.1 and 10.0.")
+    public static final ModConfigSpec.DoubleValue DYNAMIC_STALL_TIME_CONSTANT = SERVER_BUILDER.comment("Dynamic Stall Time Constant (k)\nControls how many chords of travel the wake takes to settle (Unsteady Aerodynamics).\nHigher values = more 'sticky' lag. Lower values = instantaneous snap.")
             .translation("windward_aerodynamics.configuration.dynamic_stall_time_constant")
             .defineInRange("advanced_aerodynamics.dynamicStallTimeConstant", 1.5, 0.1, 10.0);
 
