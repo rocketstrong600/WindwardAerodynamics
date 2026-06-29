@@ -28,8 +28,9 @@ public class PolarLiftDragCoef {
         }
 
         // 36 intervals for 360 degrees (1 interval per 10 degrees).
+        // 72 intervals for 360 degrees (1 interval per 5 degrees).
         // This compresses 360 data points into 39 control points using Least Squares.
-        int intervals = 36;
+        int intervals = 72;
         this.liftSpline = new CubicBSpline(xData, liftData, intervals);
         this.dragSpline = new CubicBSpline(xData, dragData, intervals);
         this.momentSpline = new CubicBSpline(xData, momentData, intervals);

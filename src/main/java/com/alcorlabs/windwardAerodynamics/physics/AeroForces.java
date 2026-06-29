@@ -55,9 +55,8 @@ public class AeroForces {
      */
     public void integrateAeroForces(final ServerSubLevel serverSubLevel, @NotNull final Iterable<? extends SpanWiseGroup> groups, @Nullable final Pose3d localPose, final double timeStep, final Vector3dc linearVelocity, final Vector3dc angularVelocity, final Vector3d linearImpulse, final Vector3d angularImpulse) {
 
-        for (final SpanWiseGroup wingGroup : groups) {
-            wingGroup.resetTotals();
-        }
+        if (linearVelocity.lengthSquared() < 1e-6 && angularVelocity.lengthSquared() < 1e-6) return;
+
 
         // 1. Evaluate Base Impulses (accumulating group totals)
         computeForcesForGlobalV(serverSubLevel, groups, localPose, timeStep, linearVelocity, angularVelocity, baseLinImpulse, baseAngImpulse, 1.0);
@@ -181,7 +180,7 @@ public class AeroForces {
         Vector3d dAngV = new Vector3d(deltaV[3], deltaV[4], deltaV[5]);
         I.transform(dAngV, angularImpulse);
 
-        // 6. Record grouped forces for visual/stress purposes
+        // 6. Record grouped forces for visual purposes
         for (final SpanWiseGroup wingGroup : groups) {
             if (wingGroup.totalLift().lengthSquared() >= 0.001 * 0.001) {
                 wingGroup.liftCenter().div(wingGroup.totalLiftStrength); // convert to local average center
@@ -196,6 +195,10 @@ public class AeroForces {
                 serverSubLevel.getOrCreateQueuedForceGroup(ForceGroups.DRAG.get())
                         .recordPointForce(new Vector3d(wingGroup.dragCenter()), new Vector3d(wingGroup.totalDrag()).mul(timeStep));
             }
+        }
+
+        for (final SpanWiseGroup wingGroup : groups) {
+            wingGroup.resetTotals();
         }
     }
 
