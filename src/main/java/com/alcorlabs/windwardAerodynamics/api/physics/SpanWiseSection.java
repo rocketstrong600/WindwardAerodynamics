@@ -2,11 +2,15 @@ package com.alcorlabs.windwardAerodynamics.api.physics;
 
 import com.alcorlabs.windwardAerodynamics.WindwardAerodynamics;
 import com.alcorlabs.windwardAerodynamics.Config;
+import com.alcorlabs.windwardAerodynamics.api.enviroment.Weather;
+import com.alcorlabs.windwardAerodynamics.enviroment.BasicWeather;
 import dev.ryanhcode.sable.companion.math.Pose3d;
 import dev.ryanhcode.sable.physics.config.dimension_physics.DimensionPhysicsData;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -112,8 +116,12 @@ public class SpanWiseSection {
         final Vector3dc localCoM = subLevel.getMassTracker().getCenterOfMass();
 
         // pressure is similar to real life density at sea_level
-        final double pressure = DimensionPhysicsData.getAirPressure(subLevel.getLevel(), pose.transformPosition(AERO_CENTER, TEMP));
-
+        double pressure = DimensionPhysicsData.getAirPressure(subLevel.getLevel(), pose.transformPosition(AERO_CENTER, TEMP));
+        BlockPos worldAeroCentre = BlockPos.containing(TEMP.x, TEMP.y, TEMP.z);
+        FluidState fluidState = subLevel.getLevel().getFluidState(worldAeroCentre);
+        boolean inWater = fluidState.is(FluidTags.WATER);
+        if (inWater) pressure = 800d;
+        final Weather testWind = new BasicWeather();
 
         // transform VELO to be the local velocity at the center of the block
         // TEMP = vector from CoM to AERO_CENTER
@@ -122,6 +130,7 @@ public class SpanWiseSection {
         TEMP.set(AERO_CENTER).sub(localCoM);
         pose.transformNormal(TEMP);
         AERO_CENTER_VELO.set(linearVelocity).add(angularVelocity.cross(TEMP, TEMP));
+        if (!inWater) AERO_CENTER_VELO.sub(testWind.getWind(null,null).getWindVelocity()); //Subtract wind from velocity.
         pose.transformNormalInverse(AERO_CENTER_VELO);
 
         // Discard Span Wise Flow to use in-plane flow per 2D section theory
