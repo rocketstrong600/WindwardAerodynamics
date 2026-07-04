@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "windward_aerodynamics:block/buoyancy_tank"
+    }
+  }
+}

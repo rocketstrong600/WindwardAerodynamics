@@ -12,10 +12,18 @@ public class Config {
                     "\nThis may seem unrealistic however sables block masses are lower than real counterparts.")
             .translation("windward_aerodynamics.configuration.aerodynamic_force_multiplier")
             .defineInRange("aeroForceMul", 0.2, 0.001, 2.0);
+
+    public static final ModConfigSpec.DoubleValue WIND_SPEED_TEST = SERVER_BUILDER.comment("Wind Speed Test")
+            .translation("windward_aerodynamics.configuration.wind_speed_test")
+            .defineInRange("windSpeedTest", 8, 0.0, 30.0);
             
     public static final ModConfigSpec.DoubleValue DRAG_MULTIPLIER = SERVER_BUILDER.comment("Drag Multiplier\nScales the aerodynamic drag. Lower values increase the L/D (Lift-to-Drag) ratio, allowing planes to glide much further.\n1.0 is realistic drag.")
             .translation("windward_aerodynamics.configuration.drag_multiplier")
             .defineInRange("dragMultiplier", 1.0, 0.0, 10.0);
+
+    public static final ModConfigSpec.DoubleValue WATER_DENSITY = SERVER_BUILDER.comment("Water Density\nDensity of water used for calculating hydrodynamic forces. Real life water is around 1000.")
+            .translation("windward_aerodynamics.configuration.water_density")
+            .defineInRange("waterDensity", 800.0, 1.0, 2000.0);
             
     public static final ModConfigSpec.BooleanValue ENABLE_WIND = SERVER_BUILDER.comment("Enable wind\nRequired For Sailing\nNot Implemented Yet")
             .translation("windward_aerodynamics.configuration.enable_wind")

@@ -8,5 +8,10 @@
   "windward_aerodynamics.configuration.max_positive_feedback_scale": "Max Positive Feedback",
   "windward_aerodynamics.configuration.drag_multiplier": "Drag Multiplier",
   "windward_aerodynamics.configuration.advanced_aerodynamics": "Advanced Simulation Options",
-  "windward_aerodynamics.configuration.dev": "Developer Helpers"
+  "windward_aerodynamics.configuration.dev": "Developer Helpers",
+  "windward_aerodynamics.configuration.wind_speed_test": "Wind Speed Test",
+  "windward_aerodynamics.configuration.water_density": "Water Density",
+  "block.windward_aerodynamics.ballast": "Ballast",
+  "block.windward_aerodynamics.buoyancy_tank": "Buoyancy Tank",
+  "itemGroup.windward_aerodynamics": "Windward Aerodynamics"
 }

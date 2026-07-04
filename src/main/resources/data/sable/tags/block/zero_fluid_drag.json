@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "#create:sails",
+    "#simulated:symmetric_sails"
+  ]
+}

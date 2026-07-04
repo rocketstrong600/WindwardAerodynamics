@@ -1,0 +1,180 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.lz4:lz4-java:1.8.0'
+    }
+}
+
+def sableGitRef = "mc${minecraft_version}-${sable_version}-neoforge"
+
+def fetchSable = tasks.register('fetchSable', Exec) {
+    def destDir = layout.buildDirectory.dir("sable-src").get().asFile
+    commandLine 'git', 'clone', '--no-checkout', '--branch', sableGitRef, 'https://github.com/ryanhcode/sable', destDir.absolutePath
+    onlyIf { !destDir.exists() }
+}
+
+def sableSrcDir = layout.buildDirectory.dir("sable-src").get().asFile
+
+def sparseCheckoutSable = tasks.register('sparseCheckoutSable', Exec) {
+    dependsOn fetchSable
+    workingDir sableSrcDir
+    commandLine 'git', 'sparse-checkout', 'set', 'sable_rapier'
+}
+
+def patchSable = tasks.register('patchSable', Exec) {
+    dependsOn sparseCheckoutSable
+    workingDir sableSrcDir
+    commandLine 'sh', '-c', "git reset --hard HEAD && git clean -fd && patch -N -p1 -i " + project.file('sable_full_physics_overhaul.patch').absolutePath
+}
+
+def sableRapierDir = layout.buildDirectory.dir("sable-src/sable_rapier").get().asFile
+
+// --- RUST BUILD LOGIC START ---
+def mac(arch) { [triple: "${arch}-apple-darwin", suffix: "", arch: arch, os: "macos", ext: "dylib", lib: true] }
+def linux(arch) { [triple: "${arch}-unknown-linux-gnu", suffix: ".2.17", arch: arch, os: "linux", ext: "so", lib: true] }
+def windows(arch) { [triple: "${arch}-pc-windows-msvc", suffix: "", arch: arch, os: "windows", ext: "dll", lib: false] }
+
+def supportedTargets = [
+        mac("x86_64"), mac("aarch64"),
+        linux("x86_64"), linux("aarch64"),
+        windows("x86_64"), windows("aarch64")
+]
+def pinnedRustVersion = 'nightly-2026-01-29'
+def rustRootDir = new File(sableRapierDir, "src/main/rust")
+def rustProjectDir = new File(rustRootDir, "rapier")
+def nativesDir = new File(sableRapierDir, "src/main/resources/natives/sable_rapier")
+def cargoCacheDir = project.layout.buildDirectory.file("cargo").get().asFile
+def docker = Os.isFamily(Os.FAMILY_MAC) ? "/usr/local/bin/docker" : "docker"
+def xWinImage = 'sable-build-xwin'
+def zigbuildImage = 'sable-build-zigbuild'
+
+def baseDockerCommand = [
+        docker, 'run', '--rm', '-v', "$rustRootDir:/io", '-v', "$cargoCacheDir/git:/usr/local/cargo/git", '-v', "$cargoCacheDir/registry:/usr/local/cargo/registry", '-w', '/io/rapier',
+]
+project.ext.zigbuildCargo = [baseDockerCommand, zigbuildImage, 'cargo'].flatten()
+project.ext.xWinCargo = [baseDockerCommand, xWinImage, 'cargo'].flatten()
+
+tasks.register('createContainersDirectory') {
+    doLast { if (!cargoCacheDir.exists()) cargoCacheDir.mkdirs() }
+}
+
+tasks.register('buildZigbuildImage', Exec) {
+    group = 'rust'
+    workingDir rustRootDir
+    commandLine docker, 'build', '-t', zigbuildImage, 'container/zigbuild', '--build-arg', "RUST_VERSION=${pinnedRustVersion}"
+    dependsOn 'createContainersDirectory', 'patchSable'
+}
+tasks.register('buildXWinImage', Exec) {
+    group = 'rust'
+    workingDir rustRootDir
+    commandLine docker, 'build', '-t', xWinImage, 'container/xwin', '--build-arg', "RUST_VERSION=${pinnedRustVersion}"
+    dependsOn 'createContainersDirectory', 'patchSable'
+}
+
+def compileRustTaskName = { target -> "compileRust-${target.os}-${target.arch}" }
+
+def commandLineForTarget(target) {
+    if (target.triple.contains('msvc')) {
+        [project.ext.xWinCargo, 'xwin', 'build', '--target', target.triple + target.suffix].flatten()
+    } else {
+        [project.ext.zigbuildCargo, 'zigbuild', '--target', target.triple + target.suffix].flatten()
+    }
+}
+
+def nativesNameForTarget(target) { "sable_rapier_${target.arch}_${target.os}.${target.ext}" }
+
+supportedTargets.forEach { target ->
+    tasks.register(compileRustTaskName(target), Exec) {
+        group = 'rust'
+        workingDir rustProjectDir
+        def commands= commandLineForTarget(target)
+        commands.add('--release')
+        commandLine = commands
+        dependsOn 'buildZigbuildImage', 'buildXWinImage', 'patchSable'
+    }
+}
+
+tasks.register('buildRustNatives') {
+    group = 'build'
+    dependsOn = supportedTargets.stream().map(compileRustTaskName).collect()
+}
+
+tasks.register('copyRustNatives', Copy) {
+    group = 'rust'
+    into nativesDir
+    dependsOn buildRustNatives
+
+    supportedTargets.forEach { target ->
+        def newName = nativesNameForTarget(target)
+        from(file("$rustRootDir/target/${target.triple}/release/${if (target.lib) { "lib" } else { "" }}sable_rapier.${target.ext}")) {
+            rename { _ -> newName }
+        }
+    }
+}
+
+tasks.register('packRustNatives', Zip) {
+    group = 'rust'
+    dependsOn copyRustNatives
+    archiveFile.set file("${nativesDir}/sable_rapier_binaries.zip.l4z")
+    entryCompression = ZipEntryCompression.STORED
+    into nativesDir
+
+    def filesToDelete = supportedTargets.collect { target -> "${nativesDir.absolutePath}/${nativesNameForTarget(target)}" }
+    supportedTargets.forEach { target ->
+        var f = nativesNameForTarget(target)
+        from(file("${nativesDir}/${f}")) { eachFile { setPath f } }
+    }
+    doLast {
+        byte[] bytes = java.nio.file.Files.readAllBytes(getArchiveFile().get().asFile.toPath())
+        try (var f = new java.io.FileOutputStream(getArchiveFile().get().asFile)) {
+            try (var x = new net.jpountz.lz4.LZ4FrameOutputStream(f, net.jpountz.lz4.LZ4FrameOutputStream.BLOCKSIZE.SIZE_4MB, bytes.length, net.jpountz.lz4.LZ4FrameOutputStream.FLG.Bits.BLOCK_INDEPENDENCE)) {
+                x.write(bytes)
+            }
+        }
+        filesToDelete.forEach { path -> new File(path).delete() }
+    }
+}
+// --- RUST BUILD LOGIC END ---
+
+sourceSets {
+    sableRapier {
+        java { srcDir layout.buildDirectory.dir("sable-src/sable_rapier/src/main/java") }
+        resources { srcDir layout.buildDirectory.dir("sable-src/sable_rapier/src/main/resources") }
+        compileClasspath += sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.runtimeClasspath
+    }
+}
+
+tasks.named('compileSableRapierJava').configure { dependsOn patchSable }
+tasks.named('processSableRapierResources').configure { dependsOn packRustNatives }
+
+def packageSableRapier = tasks.register('packageSableRapier', Jar) {
+    archiveBaseName = 'sable_rapier'
+    archiveVersion = '999.0.0'
+    from sourceSets.sableRapier.output
+    dependsOn packRustNatives
+    manifest {
+        attributes([
+            'Specification-Title': 'Sable',
+            'Specification-Vendor': 'RyanHCode',
+            'Specification-Version': '999.0.0',
+            'Implementation-Title': 'sable_rapier',
+            'Implementation-Version': '999.0.0',
+            'Implementation-Vendor': 'RyanHCode',
+            'FMLModType': 'GAMELIBRARY',
+            'Automatic-Module-Name': 'sable_rapier'
+        ])
+    }
+}
+
+dependencies {
+    jarJar("dev.ryanhcode.sable:sable_rapier:999.0.0")
+}
+
+tasks.named('jarJar').configure {
+    dependsOn packageSableRapier
+}

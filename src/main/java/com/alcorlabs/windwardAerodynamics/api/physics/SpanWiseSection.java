@@ -116,11 +116,13 @@ public class SpanWiseSection {
         final Vector3dc localCoM = subLevel.getMassTracker().getCenterOfMass();
 
         // pressure is similar to real life density at sea_level
-        double pressure = DimensionPhysicsData.getAirPressure(subLevel.getLevel(), pose.transformPosition(AERO_CENTER, TEMP));
+        pose.transformPosition(AERO_CENTER, TEMP);
         BlockPos worldAeroCentre = BlockPos.containing(TEMP.x, TEMP.y, TEMP.z);
         FluidState fluidState = subLevel.getLevel().getFluidState(worldAeroCentre);
         boolean inWater = fluidState.is(FluidTags.WATER);
-        if (inWater) pressure = 800d;
+
+        final double pressure = inWater ? Config.WATER_DENSITY.get() : DimensionPhysicsData.getAirPressure(subLevel.getLevel(), TEMP);
+
         final Weather testWind = new BasicWeather();
 
         // transform VELO to be the local velocity at the center of the block
@@ -130,7 +132,9 @@ public class SpanWiseSection {
         TEMP.set(AERO_CENTER).sub(localCoM);
         pose.transformNormal(TEMP);
         AERO_CENTER_VELO.set(linearVelocity).add(angularVelocity.cross(TEMP, TEMP));
+
         if (!inWater) AERO_CENTER_VELO.sub(testWind.getWind(null,null).getWindVelocity()); //Subtract wind from velocity.
+
         pose.transformNormalInverse(AERO_CENTER_VELO);
 
         // Discard Span Wise Flow to use in-plane flow per 2D section theory

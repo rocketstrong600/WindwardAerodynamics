@@ -1,6 +1,8 @@
 package com.alcorlabs.windwardAerodynamics;
 
 import com.mojang.logging.LogUtils;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Blocks;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -16,24 +18,33 @@ import net.neoforged.neoforge.common.NeoForge;
 import org.slf4j.Logger;
 import com.tterrag.registrate.Registrate;
 
-// The value here should match an entry in the META-INF/neoforge.mods.toml file
 @Mod(WindwardAerodynamics.MODID)
 public class WindwardAerodynamics {
-    // Define mod id in a common place for everything to reference
     public static final String MODID = "windward_aerodynamics";
-    // Directly reference a slf4j logger
     public static final Logger LOGGER = LogUtils.getLogger();
     
-    // Create the Registrate instance for the mod
-    public static final Registrate REGISTRATE = Registrate.create(MODID);
+    public static final Registrate REGISTRATE = Registrate.create(MODID)
+        .defaultCreativeTab("windward_tab", builder ->
+            builder.title(net.minecraft.network.chat.Component.translatable("itemGroup.windward_aerodynamics"))
+                   .withTabsBefore(net.minecraft.world.item.CreativeModeTabs.COMBAT)
+                   .icon(() -> new net.minecraft.world.item.ItemStack(Items.COPPER_BLOCK))
+        ).build();
 
-    // The constructor for the mod class is the first code that is run when your mod is loaded.
-    // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
+    public static final com.tterrag.registrate.util.entry.BlockEntry<com.alcorlabs.windwardAerodynamics.api.block.BallastBlock> BALLAST_BLOCK = REGISTRATE
+            .block("ballast", com.alcorlabs.windwardAerodynamics.api.block.BallastBlock::new)
+            .initialProperties(() -> Blocks.IRON_BLOCK)
+            .simpleItem()
+            .register();
+
+    public static final com.tterrag.registrate.util.entry.BlockEntry<net.minecraft.world.level.block.Block> BUOYANCY_TANK_BLOCK = REGISTRATE
+            .block("buoyancy_tank", net.minecraft.world.level.block.Block::new)
+            .initialProperties(() -> Blocks.COPPER_BLOCK)
+            .simpleItem()
+            .register();
+
     public WindwardAerodynamics(IEventBus modEventBus, ModContainer modContainer) {
-        // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
 
-        //register configs
         modContainer.registerConfig(ModConfig.Type.SERVER, Config.SERVER_SPEC);
         modContainer.registerConfig(ModConfig.Type.CLIENT, Config.CLIENT_SPEC);
 
@@ -49,7 +60,6 @@ public class WindwardAerodynamics {
         event.addListener(new com.alcorlabs.windwardAerodynamics.foils.AerofoilManager());
     }
 
-    // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
     @EventBusSubscriber(modid = MODID, value = Dist.CLIENT)
     public static class ClientModEvents {
         @SubscribeEvent
@@ -64,7 +74,6 @@ public class WindwardAerodynamics {
             net.minecraft.data.DataGenerator generator = event.getGenerator();
             net.minecraft.data.PackOutput packOutput = generator.getPackOutput();
             
-            // Register our blockstate generator
             generator.addProvider(
                 event.includeClient(), 
                 new com.alcorlabs.windwardAerodynamics.datagen.WindwardBlockstateGenerator(packOutput)

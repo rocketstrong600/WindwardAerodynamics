@@ -1,0 +1,695 @@
+diff --git a/sable_rapier/src/main/java/dev/ryanhcode/sable/physics/impl/rapier/Rapier3D.java b/sable_rapier/src/main/java/dev/ryanhcode/sable/physics/impl/rapier/Rapier3D.java
+index 0ea7775..b02d316 100644
+--- a/sable_rapier/src/main/java/dev/ryanhcode/sable/physics/impl/rapier/Rapier3D.java
++++ b/sable_rapier/src/main/java/dev/ryanhcode/sable/physics/impl/rapier/Rapier3D.java
+@@ -249,12 +249,12 @@ public static long getSceneHandle(final ServerLevel level) {
+      * @return the ID of the new block collider data entry
+      */
+     @ApiStatus.Internal
+-    private static native int newVoxelCollider(double frictionMultiplier, double volume, double restitution, boolean isFluid, BlockSubLevelCollisionCallback contactEvents);
++    private static native int newVoxelCollider(double frictionMultiplier, double volume, double restitution, double fluidDrag, boolean isFluid, BlockSubLevelCollisionCallback contactEvents);
+ 
+     /**
+      * Adds a new box to a voxel collider data entry.
+      *
+-     * @param index  the ID of the block physics data entry from {@link Rapier3D#newVoxelCollider(double, double, double, boolean, BlockSubLevelCollisionCallback)}}
++     * @param index  the ID of the block physics data entry from {@link Rapier3D#newVoxelCollider(double, double, double, double, boolean, BlockSubLevelCollisionCallback)}}
+      * @param bounds a 6-long double array, formatted [minX, minY, minZ, maxX, maxY, maxZ]
+      */
+     @ApiStatus.Internal
+@@ -263,7 +263,7 @@ public static long getSceneHandle(final ServerLevel level) {
+     /**
+      * Clears all boxes from a voxel collider data entry.
+      *
+-     * @param index the ID of the block physics data entry from {@link Rapier3D#newVoxelCollider(double, double, double, boolean, BlockSubLevelCollisionCallback)}}
++     * @param index the ID of the block physics data entry from {@link Rapier3D#newVoxelCollider(double, double, double, double, boolean, BlockSubLevelCollisionCallback)}}
+      */
+     @ApiStatus.Internal
+     public static native void clearVoxelColliderBoxes(int index);
+@@ -285,8 +285,8 @@ public static long getSceneHandle(final ServerLevel level) {
+      * @return the handle of the new block physics data entry
+      */
+     @ApiStatus.Internal
+-    public static RapierVoxelColliderData createVoxelColliderEntry(final double frictionMultiplier, final double volume, final double restitution, final boolean isFluid, final BlockSubLevelCollisionCallback contactEvents) {
+-        return new RapierVoxelColliderData(Rapier3D.newVoxelCollider(frictionMultiplier, volume, restitution, isFluid, contactEvents));
++    public static RapierVoxelColliderData createVoxelColliderEntry(final double frictionMultiplier, final double volume, final double restitution, final double fluidDrag, final boolean isFluid, final BlockSubLevelCollisionCallback contactEvents) {
++        return new RapierVoxelColliderData(Rapier3D.newVoxelCollider(frictionMultiplier, volume, restitution, fluidDrag, isFluid, contactEvents));
+     }
+ 
+     /**
+diff --git a/sable_rapier/src/main/java/dev/ryanhcode/sable/physics/impl/rapier/RapierPhysicsPipelineProvider.java b/sable_rapier/src/main/java/dev/ryanhcode/sable/physics/impl/rapier/RapierPhysicsPipelineProvider.java
+index 3218069..b4629f5 100644
+--- a/sable_rapier/src/main/java/dev/ryanhcode/sable/physics/impl/rapier/RapierPhysicsPipelineProvider.java
++++ b/sable_rapier/src/main/java/dev/ryanhcode/sable/physics/impl/rapier/RapierPhysicsPipelineProvider.java
+@@ -5,7 +5,7 @@
+ import net.minecraft.server.level.ServerLevel;
+ import org.jetbrains.annotations.NotNull;
+ 
+-@PhysicsPipelineProvider.LoadPriority()
++@PhysicsPipelineProvider.LoadPriority(2000)
+ public final class RapierPhysicsPipelineProvider implements PhysicsPipelineProvider {
+ 
+     @Override
+diff --git a/sable_rapier/src/main/java/dev/ryanhcode/sable/physics/impl/rapier/collider/RapierVoxelColliderBakery.java b/sable_rapier/src/main/java/dev/ryanhcode/sable/physics/impl/rapier/collider/RapierVoxelColliderBakery.java
+index 993c6b3..db58eb6 100644
+--- a/sable_rapier/src/main/java/dev/ryanhcode/sable/physics/impl/rapier/collider/RapierVoxelColliderBakery.java
++++ b/sable_rapier/src/main/java/dev/ryanhcode/sable/physics/impl/rapier/collider/RapierVoxelColliderBakery.java
+@@ -56,8 +56,14 @@ public RapierVoxelColliderBakery(@NotNull final BlockGetter blockGetter) {
+         final double friction = PhysicsBlockPropertyHelper.getFriction(childState);
+         final double volume = PhysicsBlockPropertyHelper.getVolume(childState);
+         final double restitution = PhysicsBlockPropertyHelper.getRestitution(childState);
++        
++        double fluidDrag = 1.0;
++        if (childState.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, dev.ryanhcode.sable.Sable.sablePath("zero_fluid_drag")))) {
++            fluidDrag = 0.0;
++        }
++        
+         final BlockSubLevelCollisionCallback callback = BlockWithSubLevelCollisionCallback.sable$getCallback(childState);
+-        final RapierVoxelColliderData entry = Rapier3D.createVoxelColliderEntry(friction, volume, restitution, liquid, callback);
++        final RapierVoxelColliderData entry = Rapier3D.createVoxelColliderEntry(friction, volume, restitution, fluidDrag, liquid, callback);
+ 
+         if (liquid) {
+             entry.addBox(JOMLConversion.ZERO, new Vector3d(1.0, 1.0, 1.0));
+diff --git a/sable_rapier/src/main/resources/natives/sable_rapier/sable_rapier_binaries.zip.l4z b/sable_rapier/src/main/resources/natives/sable_rapier/sable_rapier_binaries.zip.l4z
+index bec86cf..e071bfc 100644
+Binary files a/sable_rapier/src/main/resources/natives/sable_rapier/sable_rapier_binaries.zip.l4z and b/sable_rapier/src/main/resources/natives/sable_rapier/sable_rapier_binaries.zip.l4z differ
+diff --git a/sable_rapier/src/main/rust/.cargo/config.toml b/sable_rapier/src/main/rust/.cargo/config.toml
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/Cargo.lock b/sable_rapier/src/main/rust/Cargo.lock
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/Cargo.toml b/sable_rapier/src/main/rust/Cargo.toml
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/container/xwin/Dockerfile b/sable_rapier/src/main/rust/container/xwin/Dockerfile
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/container/zigbuild/Dockerfile b/sable_rapier/src/main/rust/container/zigbuild/Dockerfile
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/marten/Cargo.toml b/sable_rapier/src/main/rust/marten/Cargo.toml
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/marten/src/level.rs b/sable_rapier/src/main/rust/marten/src/level.rs
+old mode 100644
+new mode 100755
+index 2f3b491..5e1e75b
+--- a/sable_rapier/src/main/rust/marten/src/level.rs
++++ b/sable_rapier/src/main/rust/marten/src/level.rs
+@@ -90,6 +90,7 @@ pub struct VoxelColliderData {
+     pub friction: f32,
+     pub volume: f32,
+     pub restitution: f32,
++    pub fluid_drag: f32,
+ 
+     /// If this block has special contact behavior
+     pub contact_events: Option<GlobalRef>,
+diff --git a/sable_rapier/src/main/rust/marten/src/lib.rs b/sable_rapier/src/main/rust/marten/src/lib.rs
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/marten/src/octree.rs b/sable_rapier/src/main/rust/marten/src/octree.rs
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/rapier/Cargo.toml b/sable_rapier/src/main/rust/rapier/Cargo.toml
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/rapier/benches/collision_benchmark.rs b/sable_rapier/src/main/rust/rapier/benches/collision_benchmark.rs
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/rapier/src/algo.rs b/sable_rapier/src/main/rust/rapier/src/algo.rs
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/rapier/src/boxes.rs b/sable_rapier/src/main/rust/rapier/src/boxes.rs
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/rapier/src/buoyancy.rs b/sable_rapier/src/main/rust/rapier/src/buoyancy.rs
+index 42d40b7..5e961ec 100644
+--- a/sable_rapier/src/main/rust/rapier/src/buoyancy.rs
++++ b/sable_rapier/src/main/rust/rapier/src/buoyancy.rs
+@@ -51,28 +51,12 @@ pub fn compute_buoyancy(scene: &PhysicsScene) {
+         );
+         let vels: RigidBodyVelocity<Real> = *body.vels();
+ 
+-        let complex = (local_bounds_max - local_bounds_min).element_sum() < 10;
++        let mut block_pairs: std::collections::HashMap<IVec3, Vec<IVec3>> = std::collections::HashMap::new();
+         for (static_pos, dynamic_pos) in pairs.iter() {
+-            let local_pos = dynamic_pos.as_dvec3() + 0.5;
+-            let local_pos = (local_pos - center_of_mass).as_vec3();
+-
+-            if complex {
+-                for i in 0..8 {
+-                    let x = (i & 1) * 2 - 1;
+-                    let y = ((i >> 1) & 1) * 2 - 1;
+-                    let z = ((i >> 2) & 1) * 2 - 1;
+-                    let local_pos = Vec3::new(
+-                        local_pos.x + x as Real * 0.25,
+-                        local_pos.y + y as Real * 0.25,
+-                        local_pos.z + z as Real * 0.25,
+-                    );
+-                    do_drag(body, &vels, static_pos, &local_pos, 0.25, 1.0);
+-                }
+-            } else {
+-                do_drag(body, &vels, static_pos, &local_pos, 0.5, 1.0);
+-            }
++            block_pairs.entry(*dynamic_pos).or_default().push(*static_pos);
+         }
+-        for (static_pos, dynamic_pos) in pairs.iter() {
++
++        for (dynamic_pos, static_positions) in block_pairs.iter() {
+             let chunk =
+                 sable_data.get_chunk(dynamic_pos.x >> 4, dynamic_pos.y >> 4, dynamic_pos.z >> 4);
+ 
+@@ -86,7 +70,6 @@ pub fn compute_buoyancy(scene: &PhysicsScene) {
+                 dynamic_pos.z & 15,
+             );
+ 
+-            // block id's are unsigned, and offset by 1 to allow for a single "empty" at 0
+             if block_id == 0 {
+                 continue;
+             }
+@@ -98,93 +81,398 @@ pub fn compute_buoyancy(scene: &PhysicsScene) {
+                 continue;
+             };
+ 
+-            let local_pos = DVec3::new(
+-                dynamic_pos.x as f64 + 0.5,
+-                dynamic_pos.y as f64 + 0.5,
+-                dynamic_pos.z as f64 + 0.5,
+-            );
+-            let local_pos = Vec3::new(
+-                (local_pos.x - center_of_mass.x) as Real,
+-                (local_pos.y - center_of_mass.y) as Real,
+-                (local_pos.z - center_of_mass.z) as Real,
+-            );
+             let complex = (local_bounds_max - local_bounds_min).element_sum() < 10;
+-            if complex {
+-                for i in 0..8 {
+-                    let x = (i & 1) * 2 - 1;
+-                    let y = ((i >> 1) & 1) * 2 - 1;
+-                    let z = ((i >> 2) & 1) * 2 - 1;
++
++            for (min_x, min_y, min_z, max_x, max_y, max_z) in &voxel_collider_data.collision_boxes {
++                let box_min = Vec3::new(*min_x as Real, *min_y as Real, *min_z as Real);
++                let box_max = Vec3::new(*max_x as Real, *max_y as Real, *max_z as Real);
++
++                let total_box_volume = (box_max.x - box_min.x) * (box_max.y - box_min.y) * (box_max.z - box_min.z);
++
++                if complex {
++                    // Subdivide into 8 smaller boxes for more stable physics on small contraptions
++                    let c = (box_min + box_max) * 0.5;
++
++                    let mut sub_points = Vec::with_capacity(8);
++                    let mut sub_overlap_vols = Vec::with_capacity(8);
++                    let mut total_overlap_volume: Real = 0.0;
++
++                    for i in 0..8 {
++                        let sub_min = Vec3::new(
++                            if i & 1 == 0 { box_min.x } else { c.x },
++                            if (i >> 1) & 1 == 0 { box_min.y } else { c.y },
++                            if (i >> 2) & 1 == 0 { box_min.z } else { c.z },
++                        );
++                        let sub_max = Vec3::new(
++                            if i & 1 == 0 { c.x } else { box_max.x },
++                            if (i >> 1) & 1 == 0 { c.y } else { box_max.y },
++                            if (i >> 2) & 1 == 0 { c.z } else { box_max.z },
++                        );
++
++                        let sub_center = (sub_min + sub_max) * 0.5;
++                        let sub_extents = (sub_max - sub_min) * 0.5;
++
++                        let local_pos = Vec3::new(
++                            (dynamic_pos.x as f64 + sub_center.x as f64 - center_of_mass.x) as Real,
++                            (dynamic_pos.y as f64 + sub_center.y as f64 - center_of_mass.y) as Real,
++                            (dynamic_pos.z as f64 + sub_center.z as f64 - center_of_mass.z) as Real,
++                        );
++
++                        let point = body.position().transform_point(local_pos);
++
++                        let mut sum_overlap_vol: Real = 0.0;
++                        for static_pos in static_positions {
++                            let overlap = Aabb::new(point - sub_extents, point + sub_extents).intersection(&Aabb::new(
++                                Vec3::new(
++                                    static_pos.x as Real,
++                                    static_pos.y as Real,
++                                    static_pos.z as Real,
++                                ),
++                                Vec3::new(
++                                    static_pos.x as Real + 1.0,
++                                    static_pos.y as Real + 1.0,
++                                    static_pos.z as Real + 1.0,
++                                ),
++                            ));
++                            sum_overlap_vol += overlap.map(|o| o.volume()).unwrap_or(0.0);
++                        }
++
++                        total_overlap_volume += sum_overlap_vol;
++                        sub_points.push(point);
++                        sub_overlap_vols.push(sum_overlap_vol);
++                    }
++
++                    if total_overlap_volume > 0.0001 {
++                        let submerged_fraction = if total_box_volume > 0.0001 {
++                            total_overlap_volume / (total_box_volume as Real)
++                        } else {
++                            0.0
++                        };
++                        
++                        let submerged_fraction = submerged_fraction.min(1.0);
++
++                        let total_buoyancy = 10.5 * submerged_fraction * voxel_collider_data.volume;
++
++                        for i in 0..8 {
++                            let overlap_vol = sub_overlap_vols[i];
++                            if overlap_vol > 0.0001 {
++                                let fraction_of_total = overlap_vol / total_overlap_volume;
++                                let point_force = total_buoyancy * fraction_of_total;
++
++                                let velo = vels.velocity_at_point(sub_points[i], body.mass_properties().world_com);
++                                let mut heave_damping = -5.0 * velo.y * submerged_fraction * voxel_collider_data.volume * fraction_of_total;
++
++                                // Capped to prevent explicit Euler integration explosion for extremely light blocks
++                                let max_damping = body.mass() * 20.0 * fraction_of_total;
++                                heave_damping = heave_damping.clamp(-max_damping, max_damping);
++
++                                body.add_force_at_point(Vec3::new(0.0, point_force + heave_damping, 0.0), sub_points[i], false);
++                            }
++                        }
++                    }
++                } else {
++                    let box_center = (box_min + box_max) * 0.5;
++                    let box_extents = (box_max - box_min) * 0.5;
++
+                     let local_pos = Vec3::new(
+-                        local_pos.x + x as Real * 0.25,
+-                        local_pos.y + y as Real * 0.25,
+-                        local_pos.z + z as Real * 0.25,
+-                    );
+-                    do_float(
+-                        body,
+-                        static_pos,
+-                        &local_pos,
+-                        0.25,
+-                        voxel_collider_data.volume,
++                        (dynamic_pos.x as f64 + box_center.x as f64 - center_of_mass.x) as Real,
++                        (dynamic_pos.y as f64 + box_center.y as f64 - center_of_mass.y) as Real,
++                        (dynamic_pos.z as f64 + box_center.z as f64 - center_of_mass.z) as Real,
+                     );
++
++                    let point = body.position().transform_point(local_pos);
++
++                    let mut total_overlap_volume: Real = 0.0;
++                    for static_pos in static_positions {
++                        let overlap = Aabb::new(point - box_extents, point + box_extents).intersection(&Aabb::new(
++                            Vec3::new(
++                                static_pos.x as Real,
++                                static_pos.y as Real,
++                                static_pos.z as Real,
++                            ),
++                            Vec3::new(
++                                static_pos.x as Real + 1.0,
++                                static_pos.y as Real + 1.0,
++                                static_pos.z as Real + 1.0,
++                            ),
++                        ));
++                        total_overlap_volume += overlap.map(|o| o.volume()).unwrap_or(0.0);
++                    }
++
++                    if total_overlap_volume > 0.0001 {
++                        let submerged_fraction = if total_box_volume > 0.0001 {
++                            total_overlap_volume / (total_box_volume as Real)
++                        } else {
++                            0.0
++                        };
++                        let submerged_fraction = submerged_fraction.min(1.0);
++
++                        let velo = vels.velocity_at_point(point, body.mass_properties().world_com);
++                        let mut heave_damping = -5.0 * velo.y * submerged_fraction * voxel_collider_data.volume;
++
++                        let max_damping = body.mass() * 20.0;
++                        heave_damping = heave_damping.clamp(-max_damping, max_damping);
++
++                        body.add_force_at_point(Vec3::new(0.0, (10.5 * submerged_fraction * voxel_collider_data.volume) + heave_damping, 0.0), point, false);
++                    }
+                 }
+-            } else {
+-                do_float(
++            }
++
++            let mut total_overlap_volume: Real = 0.0;
++            let mut total_box_volume: Real = 0.0;
++
++            for (min_x, min_y, min_z, max_x, max_y, max_z) in &voxel_collider_data.collision_boxes {
++                let box_min = Vec3::new(*min_x as Real, *min_y as Real, *min_z as Real);
++                let box_max = Vec3::new(*max_x as Real, *max_y as Real, *max_z as Real);
++                total_box_volume += (box_max.x - box_min.x) * (box_max.y - box_min.y) * (box_max.z - box_min.z);
++
++                let box_extents = (box_max - box_min) * 0.5;
++                let local_pos = Vec3::new(
++                    (dynamic_pos.x as f64 + ((box_min.x + box_max.x) * 0.5) as f64 - center_of_mass.x) as Real,
++                    (dynamic_pos.y as f64 + ((box_min.y + box_max.y) * 0.5) as f64 - center_of_mass.y) as Real,
++                    (dynamic_pos.z as f64 + ((box_min.z + box_max.z) * 0.5) as f64 - center_of_mass.z) as Real,
++                );
++                let point = body.position().transform_point(local_pos);
++
++                for static_pos in static_positions {
++                    let overlap = Aabb::new(point - box_extents, point + box_extents).intersection(&Aabb::new(
++                        Vec3::new(static_pos.x as Real, static_pos.y as Real, static_pos.z as Real),
++                        Vec3::new(static_pos.x as Real + 1.0, static_pos.y as Real + 1.0, static_pos.z as Real + 1.0),
++                    ));
++                    total_overlap_volume += overlap.map(|o| o.volume()).unwrap_or(0.0);
++                }
++            }
++
++            if total_overlap_volume > 0.0001 {
++                let submerged_fraction = (total_overlap_volume / total_box_volume.max(0.0001)).min(1.0);
++
++                do_hydrodynamics(
+                     body,
+-                    static_pos,
+-                    &local_pos,
+-                    0.5,
+-                    voxel_collider_data.volume,
++                    &vels,
++                    &voxel_collider_data.collision_boxes,
++                    center_of_mass,
++                    dynamic_pos,
++                    submerged_fraction,
++                    voxel_collider_data.fluid_drag,
++                    &*sable_data,
+                 );
+             }
+         }
+     }
+ }
+ 
+-fn do_drag(
++
++struct HydroFace {
++    normal: Vec3,
++    area: Real,
++    center: Vec3,
++}
++
++fn get_hydrodynamic_faces(boxes: &[(f32, f32, f32, f32, f32, f32)]) -> Vec<HydroFace> {
++    if boxes.is_empty() { return vec![]; }
++
++    let mut min = Vec3::new(f32::MAX, f32::MAX, f32::MAX);
++    let mut max = Vec3::new(f32::MIN, f32::MIN, f32::MIN);
++    let mut total_vol = 0.0;
++    let mut com = Vec3::ZERO;
++
++    for &(min_x, min_y, min_z, max_x, max_y, max_z) in boxes {
++        let bmin = Vec3::new(min_x as Real, min_y as Real, min_z as Real);
++        let bmax = Vec3::new(max_x as Real, max_y as Real, max_z as Real);
++        min = min.min(bmin);
++        max = max.max(bmax);
++        let vol = (bmax.x - bmin.x) * (bmax.y - bmin.y) * (bmax.z - bmin.z);
++        total_vol += vol;
++        com += (bmin + bmax) * 0.5 * vol;
++    }
++
++    if total_vol > 0.0001 {
++        com /= total_vol;
++    }
++
++    let bbox_vol = (max.x - min.x) * (max.y - min.y) * (max.z - min.z);
++    let center = (min + max) * 0.5;
++    let extents = (max - min) * 0.5;
++
++    let mut faces = Vec::new();
++
++    // Detect stairs/wedges: multiple parts occupying < 85% of full bounding box
++    let is_stair = boxes.len() > 1 && total_vol < bbox_vol * 0.85;
++
++    if is_stair {
++        let delta = com - center;
++
++        let dx = delta.x.abs();
++        let dy = delta.y.abs();
++        let dz = delta.z.abs();
++
++        let threshold = (dx.max(dy).max(dz)) * 0.5;
++
++        let mut slope_nx = 0.0;
++        let mut slope_ny = 0.0;
++        let mut slope_nz = 0.0;
++
++        let mut remove_nx = 0.0;
++        let mut remove_ny = 0.0;
++        let mut remove_nz = 0.0;
++
++        if dx >= threshold {
++            slope_nx = -delta.x.signum();
++            remove_nx = slope_nx;
++        }
++        if dy >= threshold {
++            slope_ny = -delta.y.signum();
++            remove_ny = slope_ny;
++        }
++        if dz >= threshold {
++            slope_nz = -delta.z.signum();
++            remove_nz = slope_nz;
++        }
++
++        if slope_nx == 0.0 && slope_ny == 0.0 && slope_nz == 0.0 {
++            slope_nx = 1.0;
++        }
++
++        // Scale down horizontal components for shallower stair slope
++        let slope_normal = Vec3::new(slope_nx * 0.5, slope_ny, slope_nz * 0.5).normalize();
++
++        let axes = [
++            (Vec3::new(1.0, 0.0, 0.0), extents.y * extents.z * 4.0),
++            (Vec3::new(-1.0, 0.0, 0.0), extents.y * extents.z * 4.0),
++            (Vec3::new(0.0, 1.0, 0.0), extents.x * extents.z * 4.0),
++            (Vec3::new(0.0, -1.0, 0.0), extents.x * extents.z * 4.0),
++            (Vec3::new(0.0, 0.0, 1.0), extents.x * extents.y * 4.0),
++            (Vec3::new(0.0, 0.0, -1.0), extents.x * extents.y * 4.0),
++        ];
++
++        for (n, area) in axes.iter() {
++            if n.x != 0.0 && n.x == remove_nx { continue; }
++            if n.y != 0.0 && n.y == remove_ny { continue; }
++            if n.z != 0.0 && n.z == remove_nz { continue; }
++
++            faces.push(HydroFace {
++                normal: *n,
++                area: *area,
++                center: center + *n * extents,
++            });
++        }
++
++        // Rough heuristic area based on how many dimensions are sloped
++        let dims_sloped: f32 = (if slope_nx != 0.0 { 1.0 } else { 0.0 }) + (if slope_ny != 0.0 { 1.0 } else { 0.0 }) + (if slope_nz != 0.0 { 1.0 } else { 0.0 });
++        let base_area = extents.x * extents.y * 4.0;
++        let slope_area = base_area * dims_sloped.sqrt();
++
++        let slope_center = center + Vec3::new(remove_nx * extents.x, remove_ny * extents.y, remove_nz * extents.z) * 0.5;
++
++        faces.push(HydroFace {
++            normal: slope_normal,
++            area: slope_area,
++            center: slope_center,
++        });
++
++    } else {
++        faces.push(HydroFace { normal: Vec3::new(1.0, 0.0, 0.0), area: extents.y * extents.z * 4.0, center: center + Vec3::new(extents.x, 0.0, 0.0) });
++        faces.push(HydroFace { normal: Vec3::new(-1.0, 0.0, 0.0), area: extents.y * extents.z * 4.0, center: center + Vec3::new(-extents.x, 0.0, 0.0) });
++        faces.push(HydroFace { normal: Vec3::new(0.0, 1.0, 0.0), area: extents.x * extents.z * 4.0, center: center + Vec3::new(0.0, extents.y, 0.0) });
++        faces.push(HydroFace { normal: Vec3::new(0.0, -1.0, 0.0), area: extents.x * extents.z * 4.0, center: center + Vec3::new(0.0, -extents.y, 0.0) });
++        faces.push(HydroFace { normal: Vec3::new(0.0, 0.0, 1.0), area: extents.x * extents.y * 4.0, center: center + Vec3::new(0.0, 0.0, extents.z) });
++        faces.push(HydroFace { normal: Vec3::new(0.0, 0.0, -1.0), area: extents.x * extents.y * 4.0, center: center + Vec3::new(0.0, 0.0, -extents.z) });
++    }
++
++    faces
++}
++
++fn do_hydrodynamics<T: ChunkAccess>(
+     body: &mut RigidBody,
+     vels: &RigidBodyVelocity<Real>,
+-    static_pos: &IVec3,
+-    point: &Vec3,
+-    size: Real,
+-    strength: Real,
++    collision_boxes: &[(f32, f32, f32, f32, f32, f32)],
++    center_of_mass: DVec3,
++    dynamic_pos: &IVec3,
++    submerged_fraction: Real,
++    fluid_drag: Real,
++    sable_data: &T,
+ ) {
+-    let point = body.position().transform_point(*point);
++    if submerged_fraction < 0.001 || fluid_drag < 0.001 { return; }
+ 
+-    let overlap = Aabb::new(point - size, point + size)
+-        .intersection(&Aabb::new(static_pos.as_vec3(), static_pos.as_vec3() + 1.0));
++    let faces = get_hydrodynamic_faces(collision_boxes);
+ 
+-    if overlap.is_none() {
+-        return;
+-    }
++    for face in faces {
++        let local_pos = Vec3::new(
++            (dynamic_pos.x as f64 + face.center.x as f64 - center_of_mass.x) as Real,
++            (dynamic_pos.y as f64 + face.center.y as f64 - center_of_mass.y) as Real,
++            (dynamic_pos.z as f64 + face.center.z as f64 - center_of_mass.z) as Real,
++        );
++        let world_point = body.position().transform_point(local_pos);
++        let world_normal = body.rotation() * face.normal;
+ 
+-    let volume = overlap.unwrap().volume();
+-    let velo = vels.velocity_at_point(point, body.mass_properties().world_com);
++        let check_x = face.normal.x.round() as i32;
++        let check_y = face.normal.y.round() as i32;
++        let check_z = face.normal.z.round() as i32;
+ 
+-    body.add_force_at_point(-velo * 1.7 * volume * strength, point, false);
+-}
++        let mut is_exposed = false;
++        if check_x != 0 && !is_solid(sable_data, *dynamic_pos + IVec3::new(check_x, 0, 0)) { is_exposed = true; }
++        if check_y != 0 && !is_solid(sable_data, *dynamic_pos + IVec3::new(0, check_y, 0)) { is_exposed = true; }
++        if check_z != 0 && !is_solid(sable_data, *dynamic_pos + IVec3::new(0, 0, check_z)) { is_exposed = true; }
+ 
+-fn do_float(body: &mut RigidBody, static_pos: &IVec3, point: &Vec3, size: Real, strength: Real) {
+-    let point = body.position().transform_point(*point);
+-
+-    let overlap =
+-        Aabb::new(point - Vec3::splat(size), point + Vec3::splat(size)).intersection(&Aabb::new(
+-            Vec3::new(
+-                static_pos.x as Real,
+-                static_pos.y as Real,
+-                static_pos.z as Real,
+-            ),
+-            Vec3::new(
+-                static_pos.x as Real + 1.0,
+-                static_pos.y as Real + 1.0,
+-                static_pos.z as Real + 1.0,
+-            ),
+-        ));
+-
+-    if overlap.is_none() {
+-        return;
+-    }
++        if !is_exposed { continue; }
+ 
+-    let volume = overlap.unwrap().volume();
++        let velo = vels.velocity_at_point(world_point, body.mass_properties().world_com);
+ 
+-    body.add_force_at_point(Vec3::new(0.0, 10.5 * volume * strength, 0.0), point, false);
++        // Calculate how much of THIS SPECIFIC FACE is submerged.
++        // Volumetric submerged_fraction tells us how much of the BLOCK is underwater.
++        // If the face points DOWN (world_normal.y < 0), it's at the bottom of the block, so it hits the water FIRST.
++        // If the face points UP (world_normal.y > 0), it's at the top of the block, so it gets submerged LAST.
++        let mut face_submerged_fraction = submerged_fraction;
++        if world_normal.y < -0.1 {
++            let factor = -world_normal.y; // 0.1 to 1.0
++            let ramp_end = 1.0 - 0.9 * factor; // 1.0 down to 0.1
++            face_submerged_fraction = (submerged_fraction / ramp_end).clamp(0.0, 1.0);
++        } else if world_normal.y > 0.1 {
++            let factor = world_normal.y; // 0.1 to 1.0
++            let ramp_start = 0.9 * factor; // 0.09 up to 0.9
++            face_submerged_fraction = ((submerged_fraction - ramp_start) / (1.0 - ramp_start)).clamp(0.0, 1.0);
++        }
++
++        // v_inward > 0 means the face is pushing INTO the water.
++        let v_inward = velo.dot(world_normal);
++
++        if v_inward > 0.0 {
++            let v_inward_capped = v_inward.min(20.0);
++
++            // Dynamic pressure with both quadratic (for high speed impact) and linear damping.
++            // scale the linear term by verticality so it doesn't artificially drag forward movement
++            let verticality = world_normal.y.abs();
++            let pressure = (v_inward_capped * v_inward_capped * 0.20 + v_inward_capped * (1.5 * verticality)) * fluid_drag;
++            let force = -world_normal * pressure * (face.area * face_submerged_fraction);
++            body.add_force_at_point(force, world_point, false);
++        } else {
++            let v_outward_capped = (-v_inward).min(20.0);
++            let verticality = world_normal.y.abs();
++            let suction = (v_outward_capped * v_outward_capped * 0.10 + v_outward_capped * (0.75 * verticality)) * fluid_drag;
++            let force = world_normal * suction * (face.area * face_submerged_fraction);
++            body.add_force_at_point(force, world_point, false);
++        }
++
++        // Add skin friction to parallel movement (water velocity relative to face)
++        let water_velo = -velo;
++        let v_n = water_velo.dot(world_normal);
++        let v_tangent = water_velo - world_normal * v_n;
++        let speed_tangent_sq = v_tangent.length_squared();
++        if speed_tangent_sq > 0.001 {
++            let speed_tangent = speed_tangent_sq.sqrt();
++            let friction = (speed_tangent_sq * 0.02 + speed_tangent * 0.02) * fluid_drag;
++            let force = v_tangent.normalize() * friction * (face.area * face_submerged_fraction);
++            body.add_force_at_point(force, world_point, false);
++        }
++    }
++}
++
++fn is_solid<T: ChunkAccess>(sable_data: &T, pos: IVec3) -> bool {
++    let chunk = sable_data.get_chunk(pos.x >> 4, pos.y >> 4, pos.z >> 4);
++    if let Some(chunk) = chunk {
++        let (block_id, _) = chunk.get_block(pos.x & 15, pos.y & 15, pos.z & 15);
++        block_id != 0
++    } else {
++        false
++    }
+ }
+diff --git a/sable_rapier/src/main/rust/rapier/src/collider.rs b/sable_rapier/src/main/rust/rapier/src/collider.rs
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/rapier/src/config.rs b/sable_rapier/src/main/rust/rapier/src/config.rs
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/rapier/src/contraptions.rs b/sable_rapier/src/main/rust/rapier/src/contraptions.rs
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/rapier/src/dispatcher.rs b/sable_rapier/src/main/rust/rapier/src/dispatcher.rs
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/rapier/src/event_handler.rs b/sable_rapier/src/main/rust/rapier/src/event_handler.rs
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/rapier/src/groups.rs b/sable_rapier/src/main/rust/rapier/src/groups.rs
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/rapier/src/hooks.rs b/sable_rapier/src/main/rust/rapier/src/hooks.rs
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/rapier/src/joints.rs b/sable_rapier/src/main/rust/rapier/src/joints.rs
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/rapier/src/lib.rs b/sable_rapier/src/main/rust/rapier/src/lib.rs
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/rapier/src/rope.rs b/sable_rapier/src/main/rust/rapier/src/rope.rs
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/rapier/src/scene.rs b/sable_rapier/src/main/rust/rapier/src/scene.rs
+old mode 100644
+new mode 100755
+diff --git a/sable_rapier/src/main/rust/rapier/src/voxel_collider.rs b/sable_rapier/src/main/rust/rapier/src/voxel_collider.rs
+old mode 100644
+new mode 100755
+index 4b37676..92fcd86
+--- a/sable_rapier/src/main/rust/rapier/src/voxel_collider.rs
++++ b/sable_rapier/src/main/rust/rapier/src/voxel_collider.rs
+@@ -48,6 +48,7 @@ pub extern "system" fn Java_dev_ryanhcode_sable_physics_impl_rapier_Rapier3D_new
+     friction: jdouble,
+     volume: jdouble,
+     restitution: jdouble,
++    fluid_drag: jdouble,
+     is_fluid: jboolean,
+     contact_events: JObject,
+     dynamic: jboolean,
+@@ -87,6 +88,7 @@ pub extern "system" fn Java_dev_ryanhcode_sable_physics_impl_rapier_Rapier3D_new
+             friction: friction as Real,
+             volume: volume as Real,
+             restitution: restitution as Real,
++            fluid_drag: fluid_drag as Real,
+             contact_events: global_ref,
+             contact_method: global_method,
+             dynamic: dynamic > 0,
+diff --git a/sable_rapier/src/main/rust/rust-toolchain.toml b/sable_rapier/src/main/rust/rust-toolchain.toml
+old mode 100644
+new mode 100755

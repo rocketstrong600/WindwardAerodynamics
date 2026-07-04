@@ -1,3 +1,12 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.lz4:lz4-java:1.8.0'
+    }
+}
+
 plugins {
     id 'java-library'
     id 'maven-publish'
@@ -203,3 +212,15 @@ idea {
         downloadJavadoc = true
     }
 }
+
+repositories {
+    ivy {
+        url = layout.buildDirectory.dir("libs")
+        patternLayout {
+            artifact "[module]-[revision].[ext]"
+        }
+        metadataSources { artifact() }
+    }
+}
+
+apply from: 'append_rust.gradle'

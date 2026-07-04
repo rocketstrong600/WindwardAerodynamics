@@ -1,0 +1,8 @@
+{
+  "selector": "windward_aerodynamics:buoyancy_tank",
+
+  "properties": {
+    "sable:mass": 0.5,
+    "sable:volume": 7.5
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "selector": "windward_aerodynamics:ballast",
+
+  "properties": {
+    "sable:mass": 20.0
+  }
+}
